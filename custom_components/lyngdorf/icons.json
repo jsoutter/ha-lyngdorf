@@ -1,0 +1,29 @@
+{
+  "entity": {
+    "select": {
+      "focus_position": {
+        "default": "mdi:account-voice"
+      },
+      "voicing": {
+        "default": "mdi:account-voice"
+      }
+    },
+    "sensor": {
+      "audio_input": {
+        "default": "mdi:import"
+      },
+      "audio_information": {
+        "default": "mdi:surround-sound"
+      },
+      "video_input": {
+        "default": "mdi:import"
+      },
+      "video_information": {
+        "default": "mdi:video"
+      },
+      "streaming_source": {
+        "default": "mdi:import"
+      }
+    }
+  }
+}
