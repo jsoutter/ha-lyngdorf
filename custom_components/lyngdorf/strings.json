@@ -1,0 +1,43 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "discovery_confirm": {
+        "description": "Do you want to setup {name} ({ip_address})?"
+      }
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured%]"
+    },
+    "error": {
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    }
+  },
+  "entity": {
+    "select": {
+      "focus_position": {
+        "name": "Focus position"
+      },
+      "voicing": {
+        "name": "Voicing"
+      }
+    },
+    "sensor": {
+      "audio_input": {
+        "name": "Audio input"
+      },
+      "audio_information": {
+        "name": "Audio information"
+      },
+      "video_input": {
+        "name": "Video input"
+      },
+      "video_information": {
+        "name": "Video information"
+      },
+      "streaming_source": {
+        "name": "Streaming source"
+      }
+    }
+  }
+}
