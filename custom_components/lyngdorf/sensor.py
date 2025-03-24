@@ -37,31 +37,31 @@ SENSOR_TYPES: tuple[LyngdorfSensorEntityDescription, ...] = (
         key=_AUDIO_INPUT,
         translation_key=_AUDIO_INPUT,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda device: device.audio_input,
+        value_fn=lambda receiver: receiver.audio_input,
     ),
     LyngdorfSensorEntityDescription(
         key=_AUDIO_INFORMATION,
         translation_key=_AUDIO_INFORMATION,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda device: device.audio_information,
+        value_fn=lambda receiver: receiver.audio_information,
     ),
     LyngdorfSensorEntityDescription(
         key=_VIDEO_INPUT,
         translation_key=_VIDEO_INPUT,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda device: device.video_input,
+        value_fn=lambda receiver: receiver.video_input,
     ),
     LyngdorfSensorEntityDescription(
         key=_VIDEO_INFORMATION,
         translation_key=_VIDEO_INFORMATION,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda device: device.video_information,
+        value_fn=lambda receiver: receiver.video_information,
     ),
     LyngdorfSensorEntityDescription(
         key=_STREAMING_SOURCE,
         translation_key=_STREAMING_SOURCE,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda device: device.streaming_source,
+        value_fn=lambda receiver: receiver.streaming_source,
     ),
 )
 

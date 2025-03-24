@@ -10,28 +10,47 @@
 [![hacs][hacsbadge]][hacs]
 [![Project Maintenance][maintenance-shield]][user_profile]
 
-[![Discord][discord-shield]][discord]
 [![Community Forum][forum-shield]][forum]
 
-**This component will set up the following platforms.**
+## Functionality
 
-| Platform        | Description                            |
-| --------------- | -------------------------------------- |
-| `binary_sensor` | Show something `True` or `False`.      |
-| `sensor`        | Show info from Lyngdorf API.           |
-| `switch`        | Switch something `True` or `False`.    |
+The integration allows you to control an Lyngdorf processor using TCP sockets from Home Assistant. This has been tested with an MP-60, it should work ith other Lyngdorf processors such as the MP-40 and MP-50.
 
-![example][exampleimg]
+### Supported Features
 
-## Installation
+- Media player
+  - Get and set volume
+  - Increase or decrease volume
+  - Get source list
+  - Get and set source
+  - Get sounds modes
+  - Get and set sound mode
+- Select
+  - Get focus positions list
+  - Get and set focus position
+  - Get voicings list
+  - Get and set voicing
+- Sensor
+  - Get audio information
+  - Get audio input
+  - Get streaming source
+  - Get video information
+  - Get video input
+
+## Known Limitations and Issues
+
+- Devices can only be added through Bonjour discovery.
+- Volume slider is logarithmic rather than linear.
+
+## Installation (Manual)
 
 1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
-2. If you do not have a `custom_components` directory (folder) there, you need to create it.
-3. In the `custom_components` directory (folder) create a new folder called `lyngdorf`.
-4. Download _all_ the files from the `custom_components/lyngdorf/` directory (folder) in this repository.
-5. Place the files you downloaded in the new directory (folder) you created.
-6. Restart Home Assistant
-7. In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "Lyngdorf"
+1. If you do not have a `custom_components` directory (folder) there, you need to create it.
+1. In the `custom_components` directory (folder) create a new older called `lyngdorf`.
+1. Download _all_ the files from the `custom_components/lyngdorf/` directory (folder) in this repository.
+1. Place the files you downloaded in the new directory (folder) you created.
+1. Restart Home Assistant.
+1. In the HA UI go to "Settings" -> "Device & services" where  discovered devices will be shown.
 
 Using your HA configuration directory (folder) as a starting point you should now also have this:
 
@@ -49,17 +68,19 @@ custom_components/lyngdorf/sensor.py
 custom_components/lyngdorf/strings.json
 ```
 
-## Configuration is done in the UI
+## Installation (HACS)
 
-<!---->
+Please follow directions [here](https://hacs.xyz/docs/faq/custom_repositories/), and use https://github.com/jsoutter/ha-lyngdorf as the repository URL.
 
 ## Contributions are welcome!
 
-If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md)
+If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md).
 
 ## Credits
 
-Code template based upon [@Ludeeus](https://github.com/ludeeus)'s [integration_blueprint][integration_blueprint] template
+Uses @fishloa Automation Library for Lyngdorf receivers https://github.com/fishloa/lyngdorf.
+
+Code template based upon [@Ludeeus](https://github.com/ludeeus)'s [integration_blueprint][integration_blueprint] template.
 
 ---
 
@@ -70,9 +91,6 @@ Code template based upon [@Ludeeus](https://github.com/ludeeus)'s [integration_b
 [commits]: https://github.com/jsoutter/ha-lyngdorf/commits/main
 [hacs]: https://hacs.xyz
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
-[discord]: https://discord.gg/Qa5fW2R
-[discord-shield]: https://img.shields.io/discord/330944238910963714.svg?style=for-the-badge
-[exampleimg]: example.png
 [forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=for-the-badge
 [forum]: https://community.home-assistant.io/
 [license-shield]: https://img.shields.io/github/license/jsoutter/ha-lyngdorf.svg?style=for-the-badge
