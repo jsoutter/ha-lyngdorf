@@ -33,18 +33,18 @@ SELECT_TYPES: tuple[LyngdorfSelectDescription, ...] = (
     LyngdorfSelectDescription(
         key=_FOCUS_POSITION,
         translation_key=_FOCUS_POSITION,
-        value_fn=lambda device: device.room_perfect_position,
-        options_fn=lambda device: device.available_room_perfect_positions,
-        set_value_fn=lambda device, value: setattr(
-            device, "room_perfect_position", value
+        value_fn=lambda receiver: receiver.room_perfect_position,
+        options_fn=lambda receiver: receiver.available_room_perfect_positions,
+        set_value_fn=lambda receiver, value: setattr(
+            receiver, "room_perfect_position", value
         ),
     ),
     LyngdorfSelectDescription(
         key=_VOICING,
         translation_key=_VOICING,
-        value_fn=lambda device: device.voicing,
-        options_fn=lambda device: device.available_voicings,
-        set_value_fn=lambda device, value: setattr(device, "voicing", value),
+        value_fn=lambda receiver: receiver.voicing,
+        options_fn=lambda receiver: receiver.available_voicings,
+        set_value_fn=lambda receiver, value: setattr(receiver, "voicing", value),
     ),
 )
 

@@ -1,3 +1,5 @@
+# `ha_lyngdorf`
+
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]][license]
@@ -5,35 +7,52 @@
 [![hacs][hacsbadge]][hacs]
 [![Project Maintenance][maintenance-shield]][user_profile]
 
-[![Discord][discord-shield]][discord]
 [![Community Forum][forum-shield]][forum]
 
-**This component will set up the following platforms.**
+## Functionality
 
-| Platform        | Description                         |
-| --------------- | ----------------------------------- |
-| `binary_sensor` | Show something `True` or `False`.   |
-| `sensor`        | Show info from API.                 |
-| `switch`        | Switch something `True` or `False`. |
+The integration allows you to control an Lyngdorf processor using TCP sockets from Home Assistant. This has been tested with an MP-60, it should work ith other Lyngdorf processors such as the MP-40 and MP-50.
 
-![example][exampleimg]
+### Supported Features
+
+- Media player
+  - Get and set volume
+  - Increase or decrease volume
+  - Get source list
+  - Get and set source
+  - Get sounds modes
+  - Get and set sound mode
+- Select
+  - Get focus positions list
+  - Get and set focus position
+  - Get voicings list
+  - Get and set voicing
+- Sensor
+  - Get audio information
+  - Get audio input
+  - Get streaming source
+  - Get video information
+  - Get video input
+
+## Known Limitations and Issues
+
+- Devices can only be added through Bonjour discovery.
+- Volume slider is logarithmic rather than linear.
 
 {% if not installed %}
 
 ## Installation
 
 1. Click install.
-1. In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "Lyngdorf".
+1. In the HA UI go to "Settings" -> "Device & services" where  discovered devices will be shown.
 
 {% endif %}
 
-## Configuration is done in the UI
-
-<!---->
-
 ## Credits
 
-Code template based upon [@Ludeeus](https://github.com/ludeeus)'s [integration_blueprint][integration_blueprint] template
+Uses @fishloa Automation Library for Lyngdorf receivers https://github.com/fishloa/lyngdorf.
+
+Code template based upon [@Ludeeus](https://github.com/ludeeus)'s [integration_blueprint][integration_blueprint] template.
 
 ---
 
@@ -42,8 +61,6 @@ Code template based upon [@Ludeeus](https://github.com/ludeeus)'s [integration_b
 [commits]: https://github.com/jsoutter/ha-lyngdorf/commits/main
 [hacs]: https://hacs.xyz
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
-[discord]: https://discord.gg/Qa5fW2R
-[discord-shield]: https://img.shields.io/discord/330944238910963714.svg?style=for-the-badge
 [exampleimg]: example.png
 [forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=for-the-badge
 [forum]: https://community.home-assistant.io/

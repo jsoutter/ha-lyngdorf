@@ -10,16 +10,16 @@
     },
     "sensor": {
       "audio_input": {
-        "default": "mdi:import"
+        "default": "mdi:volume-source"
       },
       "audio_information": {
-        "default": "mdi:surround-sound"
+        "default": "mdi:volume-equal"
       },
       "video_input": {
-        "default": "mdi:import"
+        "default": "mdi:video-switch-outline"
       },
       "video_information": {
-        "default": "mdi:video"
+        "default": "mdi:video-image"
       },
       "streaming_source": {
         "default": "mdi:import"
