@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Final
+from collections.abc import Mapping
+from typing import Any, Final
 
 from lyngdorf.device import Receiver
 
@@ -118,6 +119,14 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
     def sound_mode_list(self) -> list[str] | None:
         """Return list of available sound modes."""
         return self._receiver.available_sound_modes
+
+    @property
+    def extra_state_attributes(self) -> Mapping[str, Any] | None:
+        """Return device specific state attributes."""
+        state_attributes = {}
+        if isinstance(self._receiver.volume, float):
+            state_attributes["volume_native"] = f"{self._receiver.volume:.1f}"
+        return state_attributes
 
     def calc_volume(self, decibel: float) -> float:
         """Calculate the volume given the decibel. Return the volume (0..1)."""
