@@ -23,6 +23,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .const import DOMAIN as LYNGDORF_DOMAIN
 from .entity import LyngdorfEntity
 
+_ATTR_VOLUME_NATIVE = "volume_native"
 _DEFAULT_MIN_VOLUME: Final = -99.9
 _DEFAULT_MAX_VOLUME: Final = -10
 
@@ -125,7 +126,7 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
         """Return device specific state attributes."""
         state_attributes = {}
         if isinstance(self._receiver.volume, float):
-            state_attributes["volume_native"] = f"{self._receiver.volume:.1f}"
+            state_attributes[_ATTR_VOLUME_NATIVE] = f"{self._receiver.volume:.1f}"
         return state_attributes
 
     def calc_volume(self, decibel: float) -> float:
