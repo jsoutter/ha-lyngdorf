@@ -22,6 +22,7 @@ The integration allows you to control an Lyngdorf processor using TCP sockets fr
   - Get and set source
   - Get sounds modes
   - Get and set sound mode
+  - Attribute for volume in native format (dB)
 - Select
   - Get focus positions list
   - Get and set focus position
@@ -37,7 +38,7 @@ The integration allows you to control an Lyngdorf processor using TCP sockets fr
 ## Known Limitations and Issues
 
 - Devices can only be added through Bonjour discovery.
-- Volume slider is logarithmic rather than linear.
+- Volume slider does not convert between linear and scaled logarithmic value.
 
 {% if not installed %}
 

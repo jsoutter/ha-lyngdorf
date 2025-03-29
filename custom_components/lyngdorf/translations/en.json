@@ -14,6 +14,11 @@
     }
   },
   "entity": {
+    "media_player": {
+      "volume_native": {
+        "name": "Volume (dB)"
+      }
+    },
     "select": {
       "focus_position": {
         "name": "Focus position"
