@@ -22,6 +22,7 @@ The integration allows you to control an Lyngdorf processor using TCP sockets fr
   - Get and set source
   - Get sounds modes
   - Get and set sound mode
+  - Attribute for volume in native format (dB)
 - Select
   - Get focus positions list
   - Get and set focus position
