@@ -9,6 +9,9 @@
   "integration_type": "device",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/jsoutter/ha-lyngdorf/issues",
+  "loggers": [
+    "lyngdorf"
+  ],
   "requirements": [
     "lyngdorf==0.3.8"
   ],
