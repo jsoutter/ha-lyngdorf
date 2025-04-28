@@ -15,7 +15,7 @@
   "requirements": [
     "lyngdorf==0.3.8"
   ],
-  "version": "0.1.1",
+  "version": "0.1.2",
   "zeroconf": [
     "_slactrl._tcp.local."
   ]
