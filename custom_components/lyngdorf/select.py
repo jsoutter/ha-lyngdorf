@@ -2,19 +2,21 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Final
-
-from lyngdorf.device import Receiver
+from typing import TYPE_CHECKING, Final
 
 from homeassistant.components.select import SelectEntity, SelectEntityDescription
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from .const import DOMAIN as LYNGDORF_DOMAIN
 from .entity import LyngdorfEntity
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+    from lyngdorf.device import Receiver
 
 _FOCUS_POSITION: Final = "focus_position"
 _VOICING: Final = "voicing"

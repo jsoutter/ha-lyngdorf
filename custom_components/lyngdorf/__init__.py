@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
-from lyngdorf.device import LyngdorfModel, Receiver, create_receiver
+from typing import TYPE_CHECKING
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_IP_ADDRESS, EVENT_HOMEASSISTANT_STOP, Platform
 from homeassistant.core import Event, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
+from lyngdorf.device import LyngdorfModel, Receiver, create_receiver
 
 from .const import DOMAIN
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
 
 PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER, Platform.SELECT, Platform.SENSOR]
 
@@ -23,16 +26,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         await receiver.async_connect()
     except (TimeoutError, ConnectionRefusedError) as err:
-        raise ConfigEntryNotReady(
-            f"Unable to connect to {entry.data[CONF_IP_ADDRESS]}: {err}"
-        ) from err
+        msg = f"Unable to connect to {entry.data[CONF_IP_ADDRESS]}: {err}"
+        raise ConfigEntryNotReady(msg) from err
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = receiver
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     @callback
-    async def disconnect(event: Event) -> None:
+    async def disconnect(event: Event) -> None:  # noqa: ARG001
         await receiver.async_disconnect()
 
     entry.async_on_unload(
