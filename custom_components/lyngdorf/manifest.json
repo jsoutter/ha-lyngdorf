@@ -9,10 +9,13 @@
   "integration_type": "device",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/jsoutter/ha-lyngdorf/issues",
+  "loggers": [
+    "lyngdorf"
+  ],
   "requirements": [
     "lyngdorf==0.3.8"
   ],
-  "version": "0.1.1",
+  "version": "0.1.2",
   "zeroconf": [
     "_slactrl._tcp.local."
   ]

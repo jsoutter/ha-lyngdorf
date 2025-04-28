@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any, Final
-
-from lyngdorf.device import Receiver
+from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.components.media_player import (
     MediaPlayerDeviceClass,
@@ -16,12 +13,16 @@ from homeassistant.components.media_player.const import (
     MediaPlayerState,
 )
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-
 from .const import DOMAIN as LYNGDORF_DOMAIN
 from .entity import LyngdorfEntity
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+    from lyngdorf.device import Receiver
 
 _ATTR_VOLUME_NATIVE = "volume_native"
 _DEFAULT_MIN_VOLUME: Final = -99.9
@@ -34,7 +35,7 @@ async def async_setup_entry(
     """Set up the platform from a config entry."""
     receiver: Receiver = hass.data[LYNGDORF_DOMAIN][entry.entry_id]
 
-    async_add_entities([LyngdorfMediaPlayer(receiver, entry)], True)
+    async_add_entities([LyngdorfMediaPlayer(receiver, entry)], update_before_add=True)
 
 
 class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
@@ -79,7 +80,7 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
         """Set volume level, range 0..1."""
         self._receiver.volume = self.calc_db(volume)
 
-    def mute_volume(self, mute: bool) -> None:
+    def mute_volume(self, mute: bool) -> None:  # noqa: FBT001
         """Mute/unmute player volume."""
         self._receiver.mute_enabled = mute
 
@@ -135,7 +136,7 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
             _DEFAULT_MIN_VOLUME - _DEFAULT_MAX_VOLUME
         )
 
-    def _to_nearest_half(self, number: float):
+    def _to_nearest_half(self, number: float) -> float:
         return round(number * 2) / 2
 
     def calc_db(self, volume: float) -> float:

@@ -2,21 +2,23 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Final
-
-from lyngdorf.device import Receiver
+from typing import TYPE_CHECKING, Final
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
-from homeassistant.helpers.typing import StateType
 
 from .const import DOMAIN as LYNGDORF_DOMAIN
 from .entity import LyngdorfEntity
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from homeassistant.config_entries import ConfigEntry
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+    from homeassistant.helpers.typing import StateType
+    from lyngdorf.device import Receiver
 
 _AUDIO_INPUT: Final = "audio_input"
 _AUDIO_INFORMATION: Final = "audio_information"

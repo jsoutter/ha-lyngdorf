@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
-from lyngdorf.device import Receiver
+from typing import TYPE_CHECKING
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import Entity
 
-from .const import DOMAIN as LYNGDORF_DOMAIN, NAME as LYNGDORF_NAME
+from .const import DOMAIN as LYNGDORF_DOMAIN
+from .const import NAME as LYNGDORF_NAME
+
+if TYPE_CHECKING:
+    from homeassistant.config_entries import ConfigEntry
+    from lyngdorf.device import Receiver
 
 
 class LyngdorfEntity(Entity):
