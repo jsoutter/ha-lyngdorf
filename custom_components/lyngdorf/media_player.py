@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING, Any, Final
 
 from homeassistant.components.media_player import (
@@ -25,8 +26,10 @@ if TYPE_CHECKING:
     from lyngdorf.device import Receiver
 
 _ATTR_VOLUME_NATIVE = "volume_native"
-_DEFAULT_MIN_VOLUME: Final = -99.9
-_DEFAULT_MAX_VOLUME: Final = -10
+_DEFAULT_MIN_LINEAR: Final = 1e-2
+_DEFAULT_MAX_LINEAR: Final = 1.0
+_DEFAULT_MIN_DB: Final = -99.9
+_DEFAULT_MAX_DB: Final = 24.0
 
 
 async def async_setup_entry(
@@ -78,7 +81,7 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
 
     def set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
-        self._receiver.volume = self.calc_db(volume)
+        self._receiver.volume = self.linear_to_log_interpolated_db(volume)
 
     def mute_volume(self, mute: bool) -> None:  # noqa: FBT001
         """Mute/unmute player volume."""
@@ -95,7 +98,7 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
     @property
     def volume_level(self) -> float | None:
         """Volume level of the media player (0..1)."""
-        return self.calc_volume(self._receiver.volume)
+        return self.db_to_linear_interpolated(self._receiver.volume)
 
     @property
     def is_volume_muted(self) -> bool:
@@ -130,18 +133,51 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
             state_attributes[_ATTR_VOLUME_NATIVE] = f"{self._receiver.volume:.1f}"
         return state_attributes
 
-    def calc_volume(self, decibel: float) -> float:
-        """Calculate the volume given the decibel. Return the volume (0..1)."""
-        return abs(_DEFAULT_MIN_VOLUME - decibel) / abs(
-            _DEFAULT_MIN_VOLUME - _DEFAULT_MAX_VOLUME
-        )
+    def linear_to_log_interpolated_db(
+        self,
+        value: float,
+        min_input=_DEFAULT_MIN_LINEAR,
+        max_input=_DEFAULT_MAX_LINEAR,
+        min_db=_DEFAULT_MIN_DB,
+        max_db=_DEFAULT_MAX_DB,
+    ) -> float:
+        """Convert a linear float [0–1] to dB (0.5 decimal), using log-scale interpolation."""
 
-    def _to_nearest_half(self, number: float) -> float:
-        return round(number * 2) / 2
+        # Clamp input within allowed range
+        value = max(min(value, max_input), min_input)
 
-    def calc_db(self, volume: float) -> float:
-        """Calculate the decibel given the volume. Return the dB."""
-        return self._to_nearest_half(
-            _DEFAULT_MIN_VOLUME
-            + round(abs(_DEFAULT_MIN_VOLUME - _DEFAULT_MAX_VOLUME) * volume)
-        )
+        # Compute dB from log-scaled interpolation
+        log_min = math.log10(min_input)
+        log_max = math.log10(max_input)
+        log_value = math.log10(value)
+        t = (log_value - log_min) / (log_max - log_min)
+        db = min_db + t * (max_db - min_db)
+
+        # Apply 0.5 dB rounding only if within range
+        if min_db < db < max_db:
+            db = round(db * 2) / 2
+
+        return db
+
+    def db_to_linear_interpolated(
+        self,
+        db: float,
+        min_input=_DEFAULT_MIN_LINEAR,
+        max_input=_DEFAULT_MAX_LINEAR,
+        min_db=_DEFAULT_MIN_DB,
+        max_db=_DEFAULT_MAX_DB,
+    ):
+        """Convert dB value to a float linear value [0–1] (rounded to 2 decimals)."""
+
+        # Clamp dB within allowed range
+        db = round(max(min(db, max_db), min_db), 1)
+
+        # Compute log scale position
+        t = (db - min_db) / (max_db - min_db)
+        log_min = math.log10(min_input)
+        log_max = math.log10(max_input)
+        log_value = log_min + t * (log_max - log_min)
+
+        # Convert back to linear value
+        linear_value = 10**log_value
+        return round(linear_value, 2)

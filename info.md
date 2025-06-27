@@ -38,7 +38,7 @@ The integration allows you to control an Lyngdorf processor using TCP sockets fr
 ## Known Limitations and Issues
 
 - Devices can only be added through Bonjour discovery.
-- Volume slider does not convert between linear and scaled logarithmic value.
+- Maximum dB for volume log-scaled interpolation is always 24dB, rather than the maximum device volume set in the processor user interface.
 
 {% if not installed %}
 
