@@ -364,6 +364,12 @@ class LyngdorfApi:
             if parsed_message.event in self._callbacks:
                 for callback in self._callbacks[parsed_message.event]:
                     try:
+                        _LOGGER.debug(
+                            "Event callback %s %s",
+                            parsed_message.event,
+                            parsed_message.params,
+                        )
+
                         await callback(parsed_message.event, parsed_message.params)
                     except Exception as err:
                         # We don't want a single bad callback to trip up the
@@ -412,6 +418,12 @@ class LyngdorfApi:
 
     async def _async_send_confirmation_callback(self, message: str) -> None:
         """Confirm that the command has been executed."""
+        _LOGGER.debug("Message %s received", message)
+        _LOGGER.debug(
+            "Pending confirmations %s",
+            list(self._pending_confirmations.keys()),
+        )
+
         if len(message) < 5 or not message.startswith(ECHO_PREFIX):
             return
 
