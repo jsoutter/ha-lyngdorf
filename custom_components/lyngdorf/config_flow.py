@@ -106,7 +106,7 @@ class LyngdorfConfigFlow(ConfigFlow, domain=DOMAIN):
 
             if not (errors := await self.async_test_connection()):
                 # Create unique ID based on host + port
-                unique_id = f"lyngdorf-{self.name}-{self.host}-{self.port}"
+                unique_id = f"lyngdorf-{self.host}:{self.port}"
                 await self.async_set_unique_id(unique_id)
                 self._abort_if_unique_id_configured()
 
