@@ -1,9 +1,8 @@
-"""Lyngdorf Media Player."""
+"""Media player entity for the Lyngdorf integration."""
 
 from __future__ import annotations
 
-import math
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.media_player import (
     MediaPlayerDeviceClass,
@@ -14,8 +13,8 @@ from homeassistant.components.media_player.const import (
     MediaPlayerState,
 )
 
-from .const import DOMAIN as LYNGDORF_DOMAIN
-from .entity import LyngdorfEntity
+
+from .entity import LyngdorfCoordinator, LyngdorfEntity
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -23,87 +22,92 @@ if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
-    from lyngdorf.device import Receiver
 
 _ATTR_VOLUME_NATIVE = "volume_native"
-_DEFAULT_MIN_LINEAR: Final = 1e-2
-_DEFAULT_MAX_LINEAR: Final = 1.0
-_DEFAULT_MIN_DB: Final = -99.9
-_DEFAULT_MAX_DB: Final = 24.0
+
+_SUPPORT_LYNGDORF = (
+    MediaPlayerEntityFeature.TURN_ON
+    | MediaPlayerEntityFeature.TURN_OFF
+    | MediaPlayerEntityFeature.VOLUME_SET
+    | MediaPlayerEntityFeature.VOLUME_STEP
+    | MediaPlayerEntityFeature.VOLUME_MUTE
+    | MediaPlayerEntityFeature.SELECT_SOURCE
+)
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the platform from a config entry."""
-    receiver: Receiver = hass.data[LYNGDORF_DOMAIN][entry.entry_id]
+    coordinator: LyngdorfCoordinator = entry.runtime_data
 
-    async_add_entities([LyngdorfMediaPlayer(receiver, entry)], update_before_add=True)
+    async_add_entities([LyngdorfMediaPlayer(coordinator)], update_before_add=True)
 
 
 class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
     """Implementation of the Lyngdorf Media Player."""
 
-    _attr_device_class = MediaPlayerDeviceClass.RECEIVER
-    _attr_supported_features = (
-        MediaPlayerEntityFeature.TURN_ON
-        | MediaPlayerEntityFeature.TURN_OFF
-        | MediaPlayerEntityFeature.VOLUME_SET
-        | MediaPlayerEntityFeature.VOLUME_STEP
-        | MediaPlayerEntityFeature.VOLUME_MUTE
-        | MediaPlayerEntityFeature.SELECT_SOURCE
-        | MediaPlayerEntityFeature.SELECT_SOUND_MODE
-    )
+    _attr_has_entity_name = True
     _attr_name = None
+    _attr_device_class = MediaPlayerDeviceClass.RECEIVER
+
+    def __init__(self, coordinator: LyngdorfCoordinator) -> None:
+        """Initialize media player."""
+        super().__init__(coordinator)
+
+        self._attr_supported_features = _SUPPORT_LYNGDORF
+        self._attr_supported_features |= (
+            self._receiver.multichannel and MediaPlayerEntityFeature.SELECT_SOUND_MODE
+        )
 
     @property
     def state(self) -> MediaPlayerState | None:
         """Return the state of the device."""
-        if self._receiver.power_on:
+        if self._receiver.power:
             return MediaPlayerState.ON
         return MediaPlayerState.OFF
 
-    def turn_off(self) -> None:
-        """Turn off media player."""
-        self._receiver.power_on = False
-
-    def turn_on(self) -> None:
+    async def async_turn_on(self) -> None:
         """Turn on media player."""
-        self._receiver.power_on = True
+        await self._receiver.async_power_on()
 
-    def volume_up(self) -> None:
+    async def async_turn_off(self) -> None:
+        """Turn off media player."""
+        await self._receiver.async_power_off()
+
+    async def async_volume_up(self) -> None:
         """Volume up media player."""
-        self._receiver.volume_up()
+        await self._receiver.async_volume_up()
 
-    def volume_down(self) -> None:
+    async def async_volume_down(self) -> None:
         """Volume down media player."""
-        self._receiver.volume_down()
+        await self._receiver.async_volume_down()
 
-    def set_volume_level(self, volume: float) -> None:
+    async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
-        self._receiver.volume = self.linear_to_log_interpolated_db(volume)
+        await self._receiver.async_set_volume_percent(volume)
 
-    def mute_volume(self, mute: bool) -> None:  # noqa: FBT001
+    async def async_mute_volume(self, mute: bool) -> None:
         """Mute/unmute player volume."""
-        self._receiver.mute_enabled = mute
+        await self._receiver.async_mute(mute)
 
-    def select_source(self, source: str) -> None:
+    async def async_select_source(self, source: str) -> None:
         """Select input source."""
-        self._receiver.source = source
+        await self._receiver.async_set_source(source)
 
-    def select_sound_mode(self, sound_mode: str) -> None:
-        """Set Sound Mode for Receiver.."""
-        self._receiver.sound_mode = sound_mode
+    async def async_select_sound_mode(self, sound_mode: str) -> None:
+        """Set Sound Mode for receiver.."""
+        await self._receiver.async_set_audio_mode(sound_mode)
 
     @property
     def volume_level(self) -> float | None:
         """Volume level of the media player (0..1)."""
-        return self.db_to_linear_interpolated(self._receiver.volume)
+        return self._receiver.volume_percent
 
     @property
-    def is_volume_muted(self) -> bool:
+    def is_volume_muted(self) -> bool | None:
         """Return a boolean if volume is currently muted."""
-        return self._receiver.mute_enabled
+        return self._receiver.muted
 
     @property
     def source(self) -> str | None:
@@ -113,71 +117,25 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
     @property
     def source_list(self) -> list[str] | None:
         """Return list of available input sources."""
-        return self._receiver.available_sources
+        return self._receiver.sources
 
     @property
     def sound_mode(self) -> str | None:
         """Return name of the current sound mode."""
-        return self._receiver.sound_mode
+        return self._receiver.audio_mode
 
     @property
     def sound_mode_list(self) -> list[str] | None:
         """Return list of available sound modes."""
-        return self._receiver.available_sound_modes
+        return self._receiver.audio_modes
 
     @property
     def extra_state_attributes(self) -> Mapping[str, Any] | None:
         """Return device specific state attributes."""
         state_attributes = {}
-        if isinstance(self._receiver.volume, float):
-            state_attributes[_ATTR_VOLUME_NATIVE] = f"{self._receiver.volume:.1f}"
+        state_attributes[_ATTR_VOLUME_NATIVE] = (
+            f"{self._receiver.volume:.1f}"
+            if self._receiver.volume is not None
+            else None
+        )
         return state_attributes
-
-    def linear_to_log_interpolated_db(
-        self,
-        value: float,
-        min_input=_DEFAULT_MIN_LINEAR,
-        max_input=_DEFAULT_MAX_LINEAR,
-        min_db=_DEFAULT_MIN_DB,
-        max_db=_DEFAULT_MAX_DB,
-    ) -> float:
-        """Convert a linear float [0–1] to dB (0.5 decimal), using log-scale interpolation."""
-
-        # Clamp input within allowed range
-        value = max(min(value, max_input), min_input)
-
-        # Compute dB from log-scaled interpolation
-        log_min = math.log10(min_input)
-        log_max = math.log10(max_input)
-        log_value = math.log10(value)
-        t = (log_value - log_min) / (log_max - log_min)
-        db = min_db + t * (max_db - min_db)
-
-        # Apply 0.5 dB rounding only if within range
-        if min_db < db < max_db:
-            db = round(db * 2) / 2
-
-        return db
-
-    def db_to_linear_interpolated(
-        self,
-        db: float,
-        min_input=_DEFAULT_MIN_LINEAR,
-        max_input=_DEFAULT_MAX_LINEAR,
-        min_db=_DEFAULT_MIN_DB,
-        max_db=_DEFAULT_MAX_DB,
-    ):
-        """Convert dB value to a float linear value [0–1] (rounded to 2 decimals)."""
-
-        # Clamp dB within allowed range
-        db = round(max(min(db, max_db), min_db), 1)
-
-        # Compute log scale position
-        t = (db - min_db) / (max_db - min_db)
-        log_min = math.log10(min_input)
-        log_max = math.log10(max_input)
-        log_value = log_min + t * (log_max - log_min)
-
-        # Convert back to linear value
-        linear_value = 10**log_value
-        return round(linear_value, 2)

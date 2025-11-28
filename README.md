@@ -32,11 +32,12 @@ The integration allows you to control an Lyngdorf processor using TCP sockets fr
   - Get voicings list
   - Get and set voicing
 - Sensor
-  - Get audio information
-  - Get audio input
   - Get streaming source
-  - Get video information
+  - Get audio input
+  - Get audio information
   - Get video input
+  - Get video information
+  - Get video output
 
 ## Known Limitations and Issues
 

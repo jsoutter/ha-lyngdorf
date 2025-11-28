@@ -9,6 +9,9 @@
       }
     },
     "sensor": {
+      "streaming_source": {
+        "default": "mdi:import"
+      },
       "audio_input": {
         "default": "mdi:volume-source"
       },
@@ -21,8 +24,8 @@
       "video_information": {
         "default": "mdi:video-image"
       },
-      "streaming_source": {
-        "default": "mdi:import"
+      "video_output": {
+        "default": "mdi:video-switch-outline"
       }
     }
   }
