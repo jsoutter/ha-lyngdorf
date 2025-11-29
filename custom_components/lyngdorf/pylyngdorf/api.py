@@ -315,8 +315,10 @@ class LyngdorfApi:
 
     def _parse_message(self, message: str) -> LyngdorfParsedMessage | None:
         """Parse a message string into an event name and list of parameters."""
+
         match = _MESSAGE_PATTERN.match(message)
         if not match:
+            _LOGGER.debug("Not matched %s", message)
             return None
 
         command = match.group("cmd")
@@ -329,6 +331,8 @@ class LyngdorfApi:
         params = _split_params(params_raw) if params_raw else []
         if trailing is not None:
             params.append(trailing)
+
+        _LOGGER.debug("ParsedMessage %s, %s", command, params)
 
         return LyngdorfParsedMessage(command, params)
 
@@ -348,6 +352,13 @@ class LyngdorfApi:
         self, message: str, parsed_message: LyngdorfParsedMessage
     ) -> None:
         """Handle triggering the registered callbacks."""
+        _LOGGER.debug(
+            "Run callbacks %s, %s, %s",
+            message,
+            parsed_message.event,
+            parsed_message.params,
+        )
+
         for callback in self._raw_callbacks:
             try:
                 await callback(message)
@@ -364,12 +375,6 @@ class LyngdorfApi:
             if parsed_message.event in self._callbacks:
                 for callback in self._callbacks[parsed_message.event]:
                     try:
-                        _LOGGER.debug(
-                            "Event callback %s %s",
-                            parsed_message.event,
-                            parsed_message.params,
-                        )
-
                         await callback(parsed_message.event, parsed_message.params)
                     except Exception as err:
                         # We don't want a single bad callback to trip up the
