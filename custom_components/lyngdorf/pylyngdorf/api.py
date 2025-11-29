@@ -316,7 +316,7 @@ class LyngdorfApi:
     def _parse_message(self, message: str) -> LyngdorfParsedMessage | None:
         """Parse a message string into an event name and list of parameters."""
 
-        match = _MESSAGE_PATTERN.match(message)
+        match = _MESSAGE_PATTERN.match(message.strip())
         if not match:
             _LOGGER.debug("Not matched %s", message)
             return None
