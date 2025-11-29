@@ -432,7 +432,7 @@ class LyngdorfApi:
         if len(message) < 5 or not message.startswith(ECHO_PREFIX):
             return
 
-        command = message[1:]
+        command = message[1:].strip()
         future = self._pending_confirmations.pop(command, None)
         if future and not future.done():
             future.set_result(None)
