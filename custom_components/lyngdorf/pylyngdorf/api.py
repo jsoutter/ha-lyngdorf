@@ -315,7 +315,6 @@ class LyngdorfApi:
 
     def _parse_message(self, message: str) -> LyngdorfParsedMessage | None:
         """Parse a message string into an event name and list of parameters."""
-
         match = _MESSAGE_PATTERN.match(message)
         if not match:
             _LOGGER.debug("Not matched %s", message)
@@ -331,8 +330,6 @@ class LyngdorfApi:
         params = _split_params(params_raw) if params_raw else []
         if trailing is not None:
             params.append(trailing)
-
-        _LOGGER.debug("ParsedMessage %s, %s", command, params)
 
         return LyngdorfParsedMessage(command, params)
 
@@ -352,13 +349,6 @@ class LyngdorfApi:
         self, message: str, parsed_message: LyngdorfParsedMessage
     ) -> None:
         """Handle triggering the registered callbacks."""
-        _LOGGER.debug(
-            "Run callbacks %s, %s, %s",
-            message,
-            parsed_message.event,
-            parsed_message.params,
-        )
-
         for callback in self._raw_callbacks:
             try:
                 await callback(message)
@@ -423,12 +413,6 @@ class LyngdorfApi:
 
     async def _async_send_confirmation_callback(self, message: str) -> None:
         """Confirm that the command has been executed."""
-        _LOGGER.debug("Message %s received", message)
-        _LOGGER.debug(
-            "Pending confirmations %s",
-            list(self._pending_confirmations.keys()),
-        )
-
         if len(message) < 5 or not message.startswith(ECHO_PREFIX):
             return
 

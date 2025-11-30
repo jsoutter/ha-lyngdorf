@@ -134,6 +134,7 @@ class DeviceProtocol:
 COMMON_COMMANDS: Final = DeviceCommands(
     {
         LyngdorfCommands.VERBOSE: CommandDefinition("VERB({:d})", required=True),
+        LyngdorfCommands.VOLUME: CommandDefinition("VOL({:.0f})", required=True),
     }
 )
 
@@ -142,9 +143,8 @@ MP_COMMANDS: Final = DeviceCommands(
         **COMMON_COMMANDS.commands,
         LyngdorfCommands.POWER_ON: CommandDefinition("POWERONMAIN"),
         LyngdorfCommands.POWER_OFF: CommandDefinition("POWEROFFMAIN"),
-        LyngdorfCommands.VOLUME: CommandDefinition("VOL({:.0f})", required=True),
         LyngdorfCommands.VOLUME_UP: CommandDefinition("VOL+"),
-        LyngdorfCommands.VOLUME_DOWN: CommandDefinition("VOL-({:.0f})"),
+        LyngdorfCommands.VOLUME_DOWN: CommandDefinition("VOL-"),
         LyngdorfCommands.MUTE_ON: CommandDefinition("MUTEON"),
         LyngdorfCommands.MUTE_OFF: CommandDefinition("MUTEOFF"),
         LyngdorfCommands.SOURCE: CommandDefinition("SRC({:d})", required=True),
@@ -162,9 +162,8 @@ TDAI_COMMANDS: Final = DeviceCommands(
         **COMMON_COMMANDS.commands,
         LyngdorfCommands.POWER_ON: CommandDefinition("ON"),
         LyngdorfCommands.POWER_OFF: CommandDefinition("OFF"),
-        LyngdorfCommands.VOLUME: CommandDefinition("VOLCH({:.0f})", required=True),
         LyngdorfCommands.VOLUME_UP: CommandDefinition("VOLUP"),
-        LyngdorfCommands.VOLUME_DOWN: CommandDefinition("VOLDN({:.0f})"),
+        LyngdorfCommands.VOLUME_DOWN: CommandDefinition("VOLDN"),
         LyngdorfCommands.MUTE_ON: CommandDefinition("MUTEON"),
         LyngdorfCommands.MUTE_OFF: CommandDefinition("MUTEOFF"),
         LyngdorfCommands.SOURCE: CommandDefinition("SRC({:d})", required=True),
