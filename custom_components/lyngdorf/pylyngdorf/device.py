@@ -394,6 +394,7 @@ class LyngdorfDevice:
         self._api.register_callback("RPVOICOUNT", self._async_voicing_count_callback)
         self._api.register_callback("RPVOI", self._async_voicing_callback)
         self._api.register_callback("VOICOUNT", self._async_voicing_count_callback)
+        self._api.register_callback("VOINAME", self._async_voicing_callback)
         self._api.register_callback("VOI", self._async_voicing_callback)
         self._api.register_callback(
             "RPFOCCOUNT", self._async_focus_position_count_callback
@@ -402,6 +403,7 @@ class LyngdorfDevice:
         self._api.register_callback(
             "RPCOUNT", self._async_focus_position_count_callback
         )
+        self._api.register_callback("RPNAME", self._async_focus_position_callback)
         self._api.register_callback("RP", self._async_focus_position_callback)
 
         # Multichannel device callbacks
