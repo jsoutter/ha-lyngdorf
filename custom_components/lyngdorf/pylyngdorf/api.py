@@ -89,8 +89,8 @@ class LyngdorfProtocol(asyncio.Protocol):
     def data_received(self, data: bytes) -> None:
         """Handle data received."""
         self._buffer += data
-        while b"\r" in self._buffer:
-            line, _, self._buffer = self._buffer.partition(b"\r")
+        while any(sep in self._buffer for sep in (b"\r", b"\n")):
+            line, self._buffer = re.split(b"[\r\n]+", self._buffer, maxsplit=1)
             with contextlib.suppress(UnicodeDecodeError):
                 self._on_message(line.decode("utf-8"))
 
@@ -316,7 +316,7 @@ class LyngdorfApi:
     def _parse_message(self, message: str) -> LyngdorfParsedMessage | None:
         """Parse a message string into an event name and list of parameters."""
 
-        match = _MESSAGE_PATTERN.match(message.strip())
+        match = _MESSAGE_PATTERN.match(message)
         if not match:
             _LOGGER.debug("Not matched %s", message)
             return None
@@ -432,7 +432,7 @@ class LyngdorfApi:
         if len(message) < 5 or not message.startswith(ECHO_PREFIX):
             return
 
-        command = message[1:].strip()
+        command = message[1:]
         future = self._pending_confirmations.pop(command, None)
         if future and not future.done():
             future.set_result(None)
