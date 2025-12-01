@@ -24,8 +24,11 @@ from .const import (
     DeviceModel,
 )
 
-_MIN_VOLUME_LINEAR: Final = 1e-2
+_MIN_VOLUME_LINEAR: Final = 0.02
 _MAX_VOLUME_LINEAR: Final = 1.0
+
+# Curve shaping factor
+_CURVE_EXPONENT = 1.6
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -429,43 +432,40 @@ class LyngdorfDevice:
 
     def _linear_to_log_interpolated_db(self, value: float) -> float:
         """Convert a linear float [0-1] to dB (0.5 decimal), using log-scale interpolation."""
-        min_linear: float = _MIN_VOLUME_LINEAR
-        max_linear: float = _MAX_VOLUME_LINEAR
-        min_db: float = MIN_VOLUME_DB
-        max_db: float = self._max_volume
+        # Clamp input
+        value = max(min(value, _MAX_VOLUME_LINEAR), _MIN_VOLUME_LINEAR)
 
-        # Clamp input within allowed range
-        value = max(min(value, max_linear), min_linear)
-
-        # Compute dB from log-scaled interpolation
-        log_min = math.log10(min_linear)
-        log_max = math.log10(max_linear)
+        # Log scale interpolation
+        log_min = math.log10(_MIN_VOLUME_LINEAR)
+        log_max = math.log10(_MAX_VOLUME_LINEAR)
         log_value = math.log10(value)
         t = (log_value - log_min) / (log_max - log_min)
-        db = min_db + t * (max_db - min_db)
 
-        # Apply 0.5 dB rounding only if within range
-        if min_db < db < max_db:
+        # Apply curve exponent to flatten low end
+        t_flat = t**_CURVE_EXPONENT
+
+        db = MIN_VOLUME_DB + t_flat * (self._max_volume - MIN_VOLUME_DB)
+
+        # Round to 0.5 dB steps if within range
+        if MIN_VOLUME_DB < db < self._max_volume:
             db = round(db * 2) / 2
-
         return db
 
     def _db_to_linear_interpolated(self, db: float):
         """Convert dB value to a float linear value [0-1] (rounded to 2 decimals)."""
-        min_linear: float = _MIN_VOLUME_LINEAR
-        max_linear: float = _MAX_VOLUME_LINEAR
-        min_db: float = MIN_VOLUME_DB
-        max_db: float = self._max_volume
+        # Clamp dB
+        db = round(max(min(db, self._max_volume), MIN_VOLUME_DB), 1)
 
-        # Clamp dB within allowed range
-        db = round(max(min(db, max_db), min_db), 1)
+        # Compute normalized position in [0,1]
+        t_flat = (db - MIN_VOLUME_DB) / (self._max_volume - MIN_VOLUME_DB)
 
-        # Compute log scale position
-        t = (db - min_db) / (max_db - min_db)
-        log_min = math.log10(min_linear)
-        log_max = math.log10(max_linear)
+        # Inverse of curve exponent
+        t = t_flat ** (1 / _CURVE_EXPONENT)
+
+        # Compute log-scale linear value
+        log_min = math.log10(_MIN_VOLUME_LINEAR)
+        log_max = math.log10(_MAX_VOLUME_LINEAR)
         log_value = log_min + t * (log_max - log_min)
 
-        # Convert back to linear value
         linear_value = 10**log_value
-        return round(linear_value, 2)
+        return round(linear_value, 3)
