@@ -63,6 +63,9 @@ class LyngdorfCommands(Enum):
     FOCUS_POSITION = auto()
     AUDIO_MODE = auto()
     LIPSYNC = auto()
+    PLAY = auto()
+    PREVIOUS = auto()
+    NEXT = auto()
 
 
 # Queries
@@ -135,6 +138,9 @@ COMMON_COMMANDS: Final = DeviceCommands(
     {
         LyngdorfCommands.VERBOSE: CommandDefinition("VERB({:d})", required=True),
         LyngdorfCommands.VOLUME: CommandDefinition("VOL({:.0f})", required=True),
+        LyngdorfCommands.PLAY: CommandDefinition("PLAY"),
+        LyngdorfCommands.PREVIOUS: CommandDefinition("PREV"),
+        LyngdorfCommands.NEXT: CommandDefinition("NEXT"),
     }
 )
 
@@ -217,6 +223,7 @@ TDAI_QUERIES: Final[Mapping[LyngdorfQueries, str]] = MappingProxyType(
         LyngdorfQueries.SOURCE_LIST: "SRCLIST?",
         LyngdorfQueries.SOURCE: "SRCNAME?",
         LyngdorfQueries.STREAM_TYPE: "STREAMTYPE?",
+        LyngdorfQueries.AUDIO_TYPE: "AUDIOSTATUS?",
         LyngdorfQueries.VOICING_LIST: "VOILIST?",
         LyngdorfQueries.VOICING: "VOINAME?",
         LyngdorfQueries.FOCUS_POSITON_LIST: "RPLIST?",
@@ -235,6 +242,7 @@ MP_STREAM_TYPES: Final = MappingProxyType(
         5: "Storage",
         6: "Roon ready",
         7: "Unknown",
+        10: "Qobuz",
     }
 )
 
@@ -251,6 +259,7 @@ TDAI1120_STREAM_TYPES: Final = MappingProxyType(
         7: "Bluetooth",
         8: "GoogleCast",
         9: "Unknown stream",
+        10: "Qobuz",
     }
 )
 
@@ -268,6 +277,7 @@ TDAI3400_STREAM_TYPES: Final = MappingProxyType(
         7: "Bluetooth",
         8: "TIDAL",
         9: "Unknown stream",
+        10: "Qobuz",
     }
 )
 

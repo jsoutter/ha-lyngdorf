@@ -406,6 +406,9 @@ class LyngdorfDevice:
         self._api.register_callback("RPNAME", self._async_focus_position_callback)
         self._api.register_callback("RP", self._async_focus_position_callback)
 
+        # TDAI models
+        self._api.register_callback("AUDIOSTATUS", self._async_audio_type_callback)
+
         # Multichannel device callbacks
         self._api.register_callback(
             "AUDMODECOUNT", self._async_audio_mode_count_callback

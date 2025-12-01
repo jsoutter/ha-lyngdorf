@@ -14,35 +14,45 @@
 
 ## Functionality
 
-The integration allows you to control an Lyngdorf processor using TCP sockets from Home Assistant. This has been tested with an MP-60, it should work ith other Lyngdorf processors such as the MP-40 and MP-50.
+The integration allows you to control an Lyngdorf processor using TCP sockets from Home Assistant.
 
 ### Supported Features
 
-- Media player
-  - Get and set volume
-  - Increase or decrease volume
-  - Get source list
-  - Get and set source
-  - Get sounds modes
-  - Get and set sound mode
-  - Attribute for volume in native format (dB)
-- Select
-  - Get focus positions list
-  - Get and set focus position
-  - Get voicings list
-  - Get and set voicing
-- Sensor
-  - Get streaming source
-  - Get audio input
-  - Get audio information
-  - Get video input
-  - Get video information
-  - Get video output
+#### Media Player Entity
+
+| | MP-40, MP-50, MP-60 | TDAI-1120, TDAI-2210, TDAI-3400 |
+|-|-|-|
+| Get and set volume | ✅ | ✅ |
+| Increase or decrease volume | ✅ | ✅ |
+| Get source list | ✅ | ✅ |
+| Get and set source | ✅ | ✅ |
+| Get sounds modes | ✅ | ❌ |
+| Get and set sound mode | ✅ | ❌ |
+| Attribute for volume in native format (dB) | ✅ | ✅ |
+
+#### Select Entity
+
+| | MP-40, MP-50, MP60 | TDAI-1120, TDAI-2200, TDAI-3400 |
+|-|-|-|
+| Get focus positions list | ✅ | ✅ |
+| Get and set focus position | ✅ | ✅ |
+| Get voicings list | ✅ | ✅ |
+| Get and set voicing | ✅ | ✅ |
+
+#### Sensor Entity
+
+| | MP-40, MP-50, MP60 | TDAI-1120, TDAI-2200, TDAI-3400 |
+|-|-|-|
+| Get streaming source | ✅ | ✅ |
+| Get audio input | ✅ | ❌ |
+| Get audio information | ✅ | ✅ |
+| Get video input | ✅ | ❌ |
+| Get video information | ✅ | ❌ |
+| Get video output | ✅ | ❌ |
 
 ## Known Limitations and Issues
 
-- Devices can only be added through Bonjour discovery.
-- Maximum dB for volume log-scaled interpolation is always 24dB, rather than the maximum device volume set in the processor user interface.
+- Integration does not expose a remote entity.
 
 ## Installation (Manual)
 
@@ -57,6 +67,12 @@ The integration allows you to control an Lyngdorf processor using TCP sockets fr
 Using your HA configuration directory (folder) as a starting point you should now also have this:
 
 ```text
+custom_components/lyngdorf/pylyngdorf/__init__.py
+custom_components/lyngdorf/pylyngdorf/api.py
+custom_components/lyngdorf/pylyngdorf/const.py
+custom_components/lyngdorf/pylyngdorf/device.py
+custom_components/lyngdorf/pylyngdorf/exceptions.py
+custom_components/lyngdorf/pylyngdorf/lyngdorf.py
 custom_components/lyngdorf/translations/en.json
 custom_components/lyngdorf/__init__.py
 custom_components/lyngdorf/config_flow.py
@@ -72,15 +88,15 @@ custom_components/lyngdorf/strings.json
 
 ## Installation (HACS)
 
-Please follow directions [here](https://hacs.xyz/docs/faq/custom_repositories/), and use https://github.com/jsoutter/ha-lyngdorf as the repository URL.
+Please follow directions [here](https://hacs.xyz/docs/faq/custom_repositories/), and use <https://github.com/jsoutter/ha-lyngdorf> as the repository URL.
 
-## Contributions are welcome!
+## Contributions are welcome
 
 If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md).
 
 ## Credits
 
-Uses @fishloa Automation Library for Lyngdorf receivers https://github.com/fishloa/lyngdorf.
+Inspiration from @fishloa Automation Library for Lyngdorf receivers <https://github.com/fishloa/lyngdorf>.
 
 Code template based upon [@Ludeeus](https://github.com/ludeeus)'s [integration_blueprint][integration_blueprint] template.
 
