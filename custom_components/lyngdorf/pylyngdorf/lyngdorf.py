@@ -49,6 +49,7 @@ class Lyngdorf(LyngdorfDevice):
 
     def __attrs_post_init__(self) -> None:
         """Initialise attributes."""
+        super().__attrs_post_init__()
         self._api.host = self._host
         self._api.port = self._port
         self._api.timeout = self._timeout
@@ -257,7 +258,7 @@ class Lyngdorf(LyngdorfDevice):
 
     async def async_set_volume_percent(self, volume: float) -> None:
         """Set processor volume percent."""
-        db = self._linear_to_log_interpolated_db(volume)
+        db = self._linear_to_db_flattened(volume)
         await self.async_set_volume(db)
 
     async def async_mute(self, mute: bool) -> None:
