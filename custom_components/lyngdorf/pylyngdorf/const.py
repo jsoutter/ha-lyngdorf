@@ -242,6 +242,8 @@ MP_STREAM_TYPES: Final = MappingProxyType(
         5: "Storage",
         6: "Roon ready",
         7: "Unknown",
+        8: "Airable",
+        9: "Artist Connection",
         10: "Qobuz",
     }
 )
@@ -258,7 +260,7 @@ TDAI1120_STREAM_TYPES: Final = MappingProxyType(
         6: "Roon Ready",
         7: "Bluetooth",
         8: "GoogleCast",
-        9: "Unknown stream",
+        9: "Airable",
         10: "Qobuz",
     }
 )
@@ -276,7 +278,7 @@ TDAI3400_STREAM_TYPES: Final = MappingProxyType(
         6: "Roon Ready",
         7: "Bluetooth",
         8: "TIDAL",
-        9: "Unknown stream",
+        9: "Airable",
         10: "Qobuz",
     }
 )
@@ -350,7 +352,7 @@ DEFAULT_PROTOCOL = DeviceProtocol(COMMON_COMMANDS, COMMON_QUERIES)
 
 DEVICE_PROTOCOLS: dict[DeviceModel, DeviceProtocol] = {
     **{
-        m: DeviceProtocol(
+        model: DeviceProtocol(
             MP_COMMANDS,
             MP_QUERIES,
             MP_STREAM_TYPES,
@@ -359,13 +361,13 @@ DEVICE_PROTOCOLS: dict[DeviceModel, DeviceProtocol] = {
             MP_VIDEO_INPUTS,
             MP_VIDEO_OUTPUTS,
         )
-        for m in MP_MODELS
+        for model in MP_MODELS
     },
     **{
         model: DeviceProtocol(
-            commands=TDAI_COMMANDS,
-            queries=TDAI_QUERIES,
-            streaming_types=TDAI_STREAM_TYPES[model],
+            TDAI_COMMANDS,
+            TDAI_QUERIES,
+            TDAI_STREAM_TYPES[model],
         )
         for model in TDAI_MODELS
     },
