@@ -32,6 +32,10 @@ _SUPPORT_LYNGDORF = (
     | MediaPlayerEntityFeature.VOLUME_STEP
     | MediaPlayerEntityFeature.VOLUME_MUTE
     | MediaPlayerEntityFeature.SELECT_SOURCE
+    | MediaPlayerEntityFeature.PLAY
+    | MediaPlayerEntityFeature.PAUSE
+    | MediaPlayerEntityFeature.PREVIOUS_TRACK
+    | MediaPlayerEntityFeature.NEXT_TRACK
 )
 
 
@@ -98,6 +102,26 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
     async def async_select_sound_mode(self, sound_mode: str) -> None:
         """Set Sound Mode for receiver.."""
         await self._receiver.async_set_audio_mode(sound_mode)
+
+    async def async_media_play(self) -> None:
+        """Send play command."""
+        await self._receiver.async_play()
+
+    async def async_media_pause(self) -> None:
+        """Send pause command."""
+        await self._receiver.async_play()
+
+    async def async_media_play_pause(self) -> None:
+        """Send play/pause command."""
+        await self._receiver.async_play()
+
+    async def async_media_previous_track(self) -> None:
+        """Send previous track command."""
+        await self._receiver.async_previous()
+
+    async def async_media_next_track(self) -> None:
+        """Send next track command."""
+        await self._receiver.async_next()
 
     @property
     def volume_level(self) -> float | None:

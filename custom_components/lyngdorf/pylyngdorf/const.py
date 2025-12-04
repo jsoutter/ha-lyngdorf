@@ -63,6 +63,9 @@ class LyngdorfCommands(Enum):
     FOCUS_POSITION = auto()
     AUDIO_MODE = auto()
     LIPSYNC = auto()
+    PLAY = auto()
+    PREVIOUS = auto()
+    NEXT = auto()
 
 
 # Queries
@@ -134,6 +137,10 @@ class DeviceProtocol:
 COMMON_COMMANDS: Final = DeviceCommands(
     {
         LyngdorfCommands.VERBOSE: CommandDefinition("VERB({:d})", required=True),
+        LyngdorfCommands.VOLUME: CommandDefinition("VOL({:.0f})", required=True),
+        LyngdorfCommands.PLAY: CommandDefinition("PLAY"),
+        LyngdorfCommands.PREVIOUS: CommandDefinition("PREV"),
+        LyngdorfCommands.NEXT: CommandDefinition("NEXT"),
     }
 )
 
@@ -142,9 +149,8 @@ MP_COMMANDS: Final = DeviceCommands(
         **COMMON_COMMANDS.commands,
         LyngdorfCommands.POWER_ON: CommandDefinition("POWERONMAIN"),
         LyngdorfCommands.POWER_OFF: CommandDefinition("POWEROFFMAIN"),
-        LyngdorfCommands.VOLUME: CommandDefinition("VOL({:.0f})", required=True),
         LyngdorfCommands.VOLUME_UP: CommandDefinition("VOL+"),
-        LyngdorfCommands.VOLUME_DOWN: CommandDefinition("VOL-({:.0f})"),
+        LyngdorfCommands.VOLUME_DOWN: CommandDefinition("VOL-"),
         LyngdorfCommands.MUTE_ON: CommandDefinition("MUTEON"),
         LyngdorfCommands.MUTE_OFF: CommandDefinition("MUTEOFF"),
         LyngdorfCommands.SOURCE: CommandDefinition("SRC({:d})", required=True),
@@ -162,9 +168,8 @@ TDAI_COMMANDS: Final = DeviceCommands(
         **COMMON_COMMANDS.commands,
         LyngdorfCommands.POWER_ON: CommandDefinition("ON"),
         LyngdorfCommands.POWER_OFF: CommandDefinition("OFF"),
-        LyngdorfCommands.VOLUME: CommandDefinition("VOLCH({:.0f})", required=True),
         LyngdorfCommands.VOLUME_UP: CommandDefinition("VOLUP"),
-        LyngdorfCommands.VOLUME_DOWN: CommandDefinition("VOLDN({:.0f})"),
+        LyngdorfCommands.VOLUME_DOWN: CommandDefinition("VOLDN"),
         LyngdorfCommands.MUTE_ON: CommandDefinition("MUTEON"),
         LyngdorfCommands.MUTE_OFF: CommandDefinition("MUTEOFF"),
         LyngdorfCommands.SOURCE: CommandDefinition("SRC({:d})", required=True),
@@ -218,6 +223,7 @@ TDAI_QUERIES: Final[Mapping[LyngdorfQueries, str]] = MappingProxyType(
         LyngdorfQueries.SOURCE_LIST: "SRCLIST?",
         LyngdorfQueries.SOURCE: "SRCNAME?",
         LyngdorfQueries.STREAM_TYPE: "STREAMTYPE?",
+        LyngdorfQueries.AUDIO_TYPE: "AUDIOSTATUS?",
         LyngdorfQueries.VOICING_LIST: "VOILIST?",
         LyngdorfQueries.VOICING: "VOINAME?",
         LyngdorfQueries.FOCUS_POSITON_LIST: "RPLIST?",
@@ -236,6 +242,9 @@ MP_STREAM_TYPES: Final = MappingProxyType(
         5: "Storage",
         6: "Roon ready",
         7: "Unknown",
+        8: "airable",
+        9: "Artist Connection",
+        10: "Qobuz",
     }
 )
 
@@ -251,7 +260,8 @@ TDAI1120_STREAM_TYPES: Final = MappingProxyType(
         6: "Roon Ready",
         7: "Bluetooth",
         8: "GoogleCast",
-        9: "Unknown stream",
+        9: "airable",
+        10: "Qobuz",
     }
 )
 
@@ -268,7 +278,8 @@ TDAI3400_STREAM_TYPES: Final = MappingProxyType(
         6: "Roon Ready",
         7: "Bluetooth",
         8: "TIDAL",
-        9: "Unknown stream",
+        9: "airable",
+        10: "Qobuz",
     }
 )
 
@@ -341,7 +352,7 @@ DEFAULT_PROTOCOL = DeviceProtocol(COMMON_COMMANDS, COMMON_QUERIES)
 
 DEVICE_PROTOCOLS: dict[DeviceModel, DeviceProtocol] = {
     **{
-        m: DeviceProtocol(
+        model: DeviceProtocol(
             MP_COMMANDS,
             MP_QUERIES,
             MP_STREAM_TYPES,
@@ -350,13 +361,13 @@ DEVICE_PROTOCOLS: dict[DeviceModel, DeviceProtocol] = {
             MP_VIDEO_INPUTS,
             MP_VIDEO_OUTPUTS,
         )
-        for m in MP_MODELS
+        for model in MP_MODELS
     },
     **{
         model: DeviceProtocol(
-            commands=TDAI_COMMANDS,
-            queries=TDAI_QUERIES,
-            streaming_types=TDAI_STREAM_TYPES[model],
+            TDAI_COMMANDS,
+            TDAI_QUERIES,
+            TDAI_STREAM_TYPES[model],
         )
         for model in TDAI_MODELS
     },

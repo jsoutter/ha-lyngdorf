@@ -49,6 +49,7 @@ class Lyngdorf(LyngdorfDevice):
 
     def __attrs_post_init__(self) -> None:
         """Initialise attributes."""
+        super().__attrs_post_init__()
         self._api.host = self._host
         self._api.port = self._port
         self._api.timeout = self._timeout
@@ -246,7 +247,7 @@ class Lyngdorf(LyngdorfDevice):
         await self._api.async_send_commands(cmd, skip_confirmation=True)
 
     async def async_set_volume(self, volume: float) -> None:
-        "Set processor volume."
+        """Set processor volume."""
         if volume < MIN_VOLUME_DB or volume > self.max_volume:
             raise ValueError(f"Invalid volume: {volume}")
 
@@ -256,8 +257,8 @@ class Lyngdorf(LyngdorfDevice):
         await self._api.async_send_commands(cmd)
 
     async def async_set_volume_percent(self, volume: float) -> None:
-        "Set processor volume percent."
-        db = self._linear_to_log_interpolated_db(volume)
+        """Set processor volume percent."""
+        db = self._linear_to_db_flattened(volume)
         await self.async_set_volume(db)
 
     async def async_mute(self, mute: bool) -> None:
@@ -276,7 +277,7 @@ class Lyngdorf(LyngdorfDevice):
             await self._api.async_send_commands(cmd)
 
     async def async_set_voicing(self, voicing: str) -> None:
-        "Set voicing of processor."
+        """Set voicing of processor."""
         if (index := self._voicings.get_by_value(voicing)) is not None:
             cmd = self._api.device_protocol.commands.get_command(
                 LyngdorfCommands.VOICING, index
@@ -284,7 +285,7 @@ class Lyngdorf(LyngdorfDevice):
             await self._api.async_send_commands(cmd)
 
     async def async_set_focus_position(self, focus_position: str) -> None:
-        "Set focus position of processor."
+        """Set focus position of processor."""
         if (index := self._focus_positions.get_by_value(focus_position)) is not None:
             cmd = self._api.device_protocol.commands.get_command(
                 LyngdorfCommands.FOCUS_POSITION, index
@@ -292,7 +293,7 @@ class Lyngdorf(LyngdorfDevice):
             await self._api.async_send_commands(cmd)
 
     async def async_set_audio_mode(self, audio_mode: str) -> None:
-        "Set audio mode of processor."
+        """Set audio mode of processor."""
         if (index := self._audio_modes.get_by_value(audio_mode)) is not None:
             cmd = self._api.device_protocol.commands.get_command(
                 LyngdorfCommands.AUDIO_MODE, index
@@ -300,11 +301,26 @@ class Lyngdorf(LyngdorfDevice):
             await self._api.async_send_commands(cmd)
 
     async def async_set_lipsync(self, lipsync: float) -> None:
-        "Set processor lipsync."
+        """Set processor lipsync."""
         if lipsync < self.min_lipsync or lipsync > self.max_lipsync:
             raise ValueError(f"Invalid lipsync: {lipsync}")
 
         cmd = self._api.device_protocol.commands.get_command(
             LyngdorfCommands.LIPSYNC, lipsync
         )
+        await self._api.async_send_commands(cmd)
+
+    async def async_play(self) -> None:
+        """Send play command."""
+        cmd = self._api.device_protocol.commands.get_command(LyngdorfCommands.PLAY)
+        await self._api.async_send_commands(cmd)
+
+    async def async_previous(self) -> None:
+        """Send previous track command."""
+        cmd = self._api.device_protocol.commands.get_command(LyngdorfCommands.PREVIOUS)
+        await self._api.async_send_commands(cmd)
+
+    async def async_next(self) -> None:
+        """Send next track command."""
+        cmd = self._api.device_protocol.commands.get_command(LyngdorfCommands.NEXT)
         await self._api.async_send_commands(cmd)

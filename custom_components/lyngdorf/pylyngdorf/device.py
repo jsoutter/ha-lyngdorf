@@ -24,10 +24,82 @@ from .const import (
     DeviceModel,
 )
 
-_MIN_VOLUME_LINEAR: Final = 1e-2
+_MIN_VOLUME_LINEAR: Final = 0.02
 _MAX_VOLUME_LINEAR: Final = 1.0
+_LINEAR_REF = 0.57  # Reference linear value
+_FRACTION = 0.5  # Midpoint fraction for dB_ref
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def compute_alpha(
+    max_db: float,
+    linear_ref: float = _LINEAR_REF,
+    f: float = _FRACTION,
+    min_linear: float = _MIN_VOLUME_LINEAR,
+    max_linear: float = _MAX_VOLUME_LINEAR,
+    min_db: float = MIN_VOLUME_DB,
+):
+    """
+    Automatically compute the alpha based only on max_db.
+    The reference dB is chosen as a fraction 'f' of the dB range.
+    """
+    # Compute reference dB
+    dB_ref = min_db + f * (max_db - min_db)
+
+    # Normalized log-linear position
+    t = (math.log10(linear_ref) - math.log10(min_linear)) / (
+        math.log10(max_linear) - math.log10(min_linear)
+    )
+
+    # Normalized dB fraction
+    t_flat = (dB_ref - min_db) / (max_db - min_db)
+
+    # Compute alpha
+    alpha = math.log(t_flat) / math.log(t)
+    return alpha
+
+
+def linear_to_db_flattened(value: float, max_volume: float, alpha: float) -> float:
+    """Convert a linear float [0-1] to dB (0.5 decimal)."""
+    # Clamp input
+    value = max(min(value, _MAX_VOLUME_LINEAR), _MIN_VOLUME_LINEAR)
+
+    # Log scale interpolation
+    log_min = math.log10(_MIN_VOLUME_LINEAR)
+    log_max = math.log10(_MAX_VOLUME_LINEAR)
+    log_value = math.log10(value)
+    t = (log_value - log_min) / (log_max - log_min)
+
+    # Apply curve exponent to flatten low end
+    t_flat = t**alpha
+
+    db = MIN_VOLUME_DB + t_flat * (max_volume - MIN_VOLUME_DB)
+
+    # Round to 0.5 dB steps if within range
+    if MIN_VOLUME_DB < db < max_volume:
+        db = round(db * 2) / 2
+    return db
+
+
+def db_to_linear_flattened(db: float, max_volume: float, alpha: float) -> float:
+    """Convert dB value to a float linear value [0-1] (rounded to 3 decimals)."""
+    # Clamp dB
+    db = round(max(min(db, max_volume), MIN_VOLUME_DB), 1)
+
+    # Compute normalized position in [0,1]
+    t_flat = (db - MIN_VOLUME_DB) / (max_volume - MIN_VOLUME_DB)
+
+    # Inverse of curve exponent
+    t = t_flat ** (1 / alpha)
+
+    # Compute log-scale linear value
+    log_min = math.log10(_MIN_VOLUME_LINEAR)
+    log_max = math.log10(_MAX_VOLUME_LINEAR)
+    log_value = log_min + t * (log_max - log_min)
+
+    linear_value = 10**log_value
+    return round(linear_value, 3)
 
 
 @attr.define(auto_attribs=True)
@@ -138,6 +210,7 @@ class LyngdorfDevice:
         converter=attr.converters.optional(convert_volume),
         default=DEFAULT_MAX_VOLUME_DB * 10,
     )
+    _alpha: float = attr.field(default=1.0)
 
     # Sources properties
     _sources: FixedSizeDict = attr.field(factory=FixedSizeDict)
@@ -171,6 +244,10 @@ class LyngdorfDevice:
         converter=attr.converters.optional(convert_on_off_bool), default=None
     )
 
+    def __attrs_post_init__(self) -> None:
+        """Initialise attributes."""
+        self._alpha = compute_alpha(self._max_volume)
+
     def set_notification_callback(self, callback: Callable[[], None]):
         self._notification_callback = callback
 
@@ -200,9 +277,7 @@ class LyngdorfDevice:
         """Handle a volume change event."""
         self._volume = params[0] if params else None
         volume = self._volume
-        self._volume_percent = (
-            self._db_to_linear_interpolated(volume) if volume else None
-        )
+        self._volume_percent = self._db_to_linear_flattened(volume) if volume else None
 
     @notify_callback
     async def _async_mute_callback(self, event: str, params: list[str]) -> None:
@@ -214,6 +289,7 @@ class LyngdorfDevice:
         """Handle a max volume event."""
         if params:
             self._max_volume = params[0]
+            self._alpha = compute_alpha(self._max_volume)
 
     @notify_callback
     async def _async_source_count_callback(self, event: str, params: list[str]) -> None:
@@ -394,6 +470,7 @@ class LyngdorfDevice:
         self._api.register_callback("RPVOICOUNT", self._async_voicing_count_callback)
         self._api.register_callback("RPVOI", self._async_voicing_callback)
         self._api.register_callback("VOICOUNT", self._async_voicing_count_callback)
+        self._api.register_callback("VOINAME", self._async_voicing_callback)
         self._api.register_callback("VOI", self._async_voicing_callback)
         self._api.register_callback(
             "RPFOCCOUNT", self._async_focus_position_count_callback
@@ -402,7 +479,11 @@ class LyngdorfDevice:
         self._api.register_callback(
             "RPCOUNT", self._async_focus_position_count_callback
         )
+        self._api.register_callback("RPNAME", self._async_focus_position_callback)
         self._api.register_callback("RP", self._async_focus_position_callback)
+
+        # TDAI models
+        self._api.register_callback("AUDIOSTATUS", self._async_audio_type_callback)
 
         # Multichannel device callbacks
         self._api.register_callback(
@@ -422,45 +503,10 @@ class LyngdorfDevice:
         self._api.register_callback("DTSDIALOG", self._async_dts_dialog_callback)
         self._api.register_callback("LOUDNESS", self._async_loudness_callback)
 
-    def _linear_to_log_interpolated_db(self, value: float) -> float:
-        """Convert a linear float [0-1] to dB (0.5 decimal), using log-scale interpolation."""
-        min_linear: float = _MIN_VOLUME_LINEAR
-        max_linear: float = _MAX_VOLUME_LINEAR
-        min_db: float = MIN_VOLUME_DB
-        max_db: float = self._max_volume
+    def _linear_to_db_flattened(self, value: float) -> float:
+        """Convert a linear float [0-1] to dB (0.5 decimal)."""
+        return linear_to_db_flattened(value, self._max_volume, self._alpha)
 
-        # Clamp input within allowed range
-        value = max(min(value, max_linear), min_linear)
-
-        # Compute dB from log-scaled interpolation
-        log_min = math.log10(min_linear)
-        log_max = math.log10(max_linear)
-        log_value = math.log10(value)
-        t = (log_value - log_min) / (log_max - log_min)
-        db = min_db + t * (max_db - min_db)
-
-        # Apply 0.5 dB rounding only if within range
-        if min_db < db < max_db:
-            db = round(db * 2) / 2
-
-        return db
-
-    def _db_to_linear_interpolated(self, db: float):
-        """Convert dB value to a float linear value [0-1] (rounded to 2 decimals)."""
-        min_linear: float = _MIN_VOLUME_LINEAR
-        max_linear: float = _MAX_VOLUME_LINEAR
-        min_db: float = MIN_VOLUME_DB
-        max_db: float = self._max_volume
-
-        # Clamp dB within allowed range
-        db = round(max(min(db, max_db), min_db), 1)
-
-        # Compute log scale position
-        t = (db - min_db) / (max_db - min_db)
-        log_min = math.log10(min_linear)
-        log_max = math.log10(max_linear)
-        log_value = log_min + t * (log_max - log_min)
-
-        # Convert back to linear value
-        linear_value = 10**log_value
-        return round(linear_value, 2)
+    def _db_to_linear_flattened(self, db: float):
+        """Convert dB value to a float linear value [0-1] (rounded to 3 decimals)."""
+        return db_to_linear_flattened(db, self._max_volume, self._alpha)

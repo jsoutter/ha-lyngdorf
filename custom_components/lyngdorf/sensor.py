@@ -42,35 +42,34 @@ SENSOR_TYPES: tuple[LyngdorfSensorEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda receiver: receiver.stream_type,
     ),
-    LyngdorfSensorEntityDescription(  # Only multichannel
+    LyngdorfSensorEntityDescription(
         key=_AUDIO_INPUT,
         translation_key=_AUDIO_INPUT,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda receiver: receiver.audio_input,
         multichannel=True,
     ),
-    LyngdorfSensorEntityDescription(  # Only multichannel
+    LyngdorfSensorEntityDescription(
         key=_AUDIO_INFORMATION,
         translation_key=_AUDIO_INFORMATION,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda receiver: receiver.audio_type,
-        multichannel=True,
     ),
-    LyngdorfSensorEntityDescription(  # Only multichannel
+    LyngdorfSensorEntityDescription(
         key=_VIDEO_INPUT,
         translation_key=_VIDEO_INPUT,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda receiver: receiver.video_input,
         multichannel=True,
     ),
-    LyngdorfSensorEntityDescription(  # Only multichannel
+    LyngdorfSensorEntityDescription(
         key=_VIDEO_INFORMATION,
         translation_key=_VIDEO_INFORMATION,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda receiver: receiver.video_type,
         multichannel=True,
     ),
-    LyngdorfSensorEntityDescription(  # Only multichannel
+    LyngdorfSensorEntityDescription(
         key=_VIDEO_OUPUT,
         translation_key=_VIDEO_OUPUT,
         entity_category=EntityCategory.DIAGNOSTIC,
