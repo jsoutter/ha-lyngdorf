@@ -50,6 +50,29 @@
       "video_output": {
         "name": "Video output"
       }
+    },
+    "number": {
+      "lipsync": {
+        "name": "Lip sync"
+      },
+      "bass_trim": {
+        "name": "Bass trim"
+      },
+      "treble_trim": {
+        "name": "Treble trim"
+      },
+      "center_trim": {
+        "name": "Center channel trim"
+      },
+      "heights_trim": {
+        "name": "Height channels trim"
+      },
+      "lfe_trim": {
+        "name": "LFE trim"
+      },
+      "surrounds_trim": {
+        "name": "Surround channels trim"
+      }
     }
   }
 }

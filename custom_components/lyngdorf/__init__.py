@@ -12,7 +12,12 @@ from .entity import LyngdorfConfigEntry, LyngdorfCoordinator
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
 
-PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER, Platform.SELECT, Platform.SENSOR]
+PLATFORMS: list[Platform] = [
+    Platform.MEDIA_PLAYER,
+    Platform.SELECT,
+    Platform.SENSOR,
+    Platform.NUMBER,
+]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
