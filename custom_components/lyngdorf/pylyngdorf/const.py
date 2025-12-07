@@ -37,6 +37,9 @@ DEFAULT_MAX_VOLUME_DB = 12.0
 DEFAULT_MIN_LIPSYNC = 0
 DEFAULT_MAX_LIPSYNC = 500
 
+TRIM_RANGE_BASS_TREBLE = 12.0
+TRIM_RANGE_CHANNEL = 10.0
+
 
 # Supported devices
 class DeviceModel(str, Enum):
@@ -66,6 +69,12 @@ class LyngdorfCommands(Enum):
     PLAY = auto()
     PREVIOUS = auto()
     NEXT = auto()
+    TRIM_BASS = auto()
+    TRIM_TREBLE = auto()
+    TRIM_CENTER = auto()
+    TRIM_HEIGHTS = auto()
+    TRIM_LFE = auto()
+    TRIM_SURROUNDS = auto()
 
 
 # Queries
@@ -95,12 +104,18 @@ class LyngdorfQueries(Enum):
     DTS_DIALOG_AVAILABLE = auto()
     DTS_DIALOG = auto()
     LOUDNESS = auto()
+    TRIM_BASS = auto()
+    TRIM_TREBLE = auto()
+    TRIM_CENTER = auto()
+    TRIM_HEIGHTS = auto()
+    TRIM_LFE = auto()
+    TRIM_SURROUNDS = auto()
 
 
 @attr.dataclass(frozen=True)
 class CommandDefinition:
     template: str
-    required: bool = False
+    parameter: bool = False
 
 
 class DeviceCommands:
@@ -116,10 +131,10 @@ class DeviceCommands:
         if args:
             return definition.template.format(*args)
 
-        if definition.required:
+        if definition.parameter:
             raise ValueError(f"Command {cmd.name} requires exactly one argument.")
 
-        # optional → strip placeholders like "({:d})" or "({:.0f})"
+        # Strip placeholders like "({:d})" or "({:.0f})"
         return re.sub(r"\([^)]*{[^}]*}\)", "", definition.template).strip()
 
 
@@ -136,8 +151,8 @@ class DeviceProtocol:
 
 COMMON_COMMANDS: Final = DeviceCommands(
     {
-        LyngdorfCommands.VERBOSE: CommandDefinition("VERB({:d})", required=True),
-        LyngdorfCommands.VOLUME: CommandDefinition("VOL({:.0f})", required=True),
+        LyngdorfCommands.VERBOSE: CommandDefinition("VERB({:d})", parameter=True),
+        LyngdorfCommands.VOLUME: CommandDefinition("VOL({:.0f})", parameter=True),
         LyngdorfCommands.PLAY: CommandDefinition("PLAY"),
         LyngdorfCommands.PREVIOUS: CommandDefinition("PREV"),
         LyngdorfCommands.NEXT: CommandDefinition("NEXT"),
@@ -153,15 +168,30 @@ MP_COMMANDS: Final = DeviceCommands(
         LyngdorfCommands.VOLUME_DOWN: CommandDefinition("VOL-"),
         LyngdorfCommands.MUTE_ON: CommandDefinition("MUTEON"),
         LyngdorfCommands.MUTE_OFF: CommandDefinition("MUTEOFF"),
-        LyngdorfCommands.SOURCE: CommandDefinition("SRC({:d})", required=True),
-        LyngdorfCommands.VOICING: CommandDefinition("RPVOI({:d})", required=True),
+        LyngdorfCommands.SOURCE: CommandDefinition("SRC({:d})", parameter=True),
+        LyngdorfCommands.VOICING: CommandDefinition("RPVOI({:d})", parameter=True),
         LyngdorfCommands.FOCUS_POSITION: CommandDefinition(
-            "RPFOC({:d})", required=True
+            "RPFOC({:d})", parameter=True
         ),
-        LyngdorfCommands.AUDIO_MODE: CommandDefinition("AUDMODE({:d})", required=True),
-        LyngdorfCommands.LIPSYNC: CommandDefinition("LIPSYNC({:d})", required=True),
+        LyngdorfCommands.AUDIO_MODE: CommandDefinition("AUDMODE({:d})", parameter=True),
+        LyngdorfCommands.LIPSYNC: CommandDefinition("LIPSYNC({:d})", parameter=True),
+        LyngdorfCommands.TRIM_BASS: CommandDefinition("TRIMBASS({:d})", parameter=True),
+        LyngdorfCommands.TRIM_TREBLE: CommandDefinition(
+            "TRIMTREB({:d})", parameter=True
+        ),
+        LyngdorfCommands.TRIM_CENTER: CommandDefinition(
+            "TRIMCENTER({:d})", parameter=True
+        ),
+        LyngdorfCommands.TRIM_HEIGHTS: CommandDefinition(
+            "TRIMHEIGHT({:d})", parameter=True
+        ),
+        LyngdorfCommands.TRIM_LFE: CommandDefinition("TRIMLFE({:d})", parameter=True),
+        LyngdorfCommands.TRIM_SURROUNDS: CommandDefinition(
+            "TRIMSURRS({:d})", parameter=True
+        ),
     }
 )
+
 
 TDAI_COMMANDS: Final = DeviceCommands(
     {
@@ -172,9 +202,9 @@ TDAI_COMMANDS: Final = DeviceCommands(
         LyngdorfCommands.VOLUME_DOWN: CommandDefinition("VOLDN"),
         LyngdorfCommands.MUTE_ON: CommandDefinition("MUTEON"),
         LyngdorfCommands.MUTE_OFF: CommandDefinition("MUTEOFF"),
-        LyngdorfCommands.SOURCE: CommandDefinition("SRC({:d})", required=True),
-        LyngdorfCommands.VOICING: CommandDefinition("VOI({:d})", required=True),
-        LyngdorfCommands.FOCUS_POSITION: CommandDefinition("RP({:d})", required=True),
+        LyngdorfCommands.SOURCE: CommandDefinition("SRC({:d})", parameter=True),
+        LyngdorfCommands.VOICING: CommandDefinition("VOI({:d})", parameter=True),
+        LyngdorfCommands.FOCUS_POSITION: CommandDefinition("RP({:d})", parameter=True),
     }
 )
 
@@ -211,6 +241,12 @@ MP_QUERIES: Final[Mapping[LyngdorfQueries, str]] = MappingProxyType(
         LyngdorfQueries.DTS_DIALOG_AVAILABLE: "DTSDIALOGAVAILABLE?",
         LyngdorfQueries.DTS_DIALOG: "DTSDIALOG?",
         LyngdorfQueries.LOUDNESS: "LOUDNESS?",
+        LyngdorfQueries.TRIM_BASS: "TRIMBASS?",
+        LyngdorfQueries.TRIM_TREBLE: "TRIMTREB?",
+        LyngdorfQueries.TRIM_CENTER: "TRIMCENTER?",
+        LyngdorfQueries.TRIM_HEIGHTS: "TRIMHEIGHT?",
+        LyngdorfQueries.TRIM_LFE: "TRIMLFE?",
+        LyngdorfQueries.TRIM_SURROUNDS: "TRIMSURRS?",
     }
 )
 

@@ -105,7 +105,7 @@ class LyngdorfSensor(LyngdorfEntity, SensorEntity):
         coordinator: LyngdorfCoordinator,
         description: LyngdorfSensorEntityDescription,
     ) -> None:
-        """Initialize sensor."""
+        """Initialize sensor entity."""
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{self._attr_unique_id}_{description.key}"

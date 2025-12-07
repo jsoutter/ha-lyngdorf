@@ -5,13 +5,22 @@ Module implements the device class for Lyngdorf processors.
 :license: MIT, see LICENSE for more details.
 """
 
-import logging
-import math
-from collections.abc import Callable, Coroutine, Mapping
-from functools import wraps
-from typing import Any, Final
-
 import attr
+import logging
+from collections.abc import Callable, Coroutine
+from functools import wraps
+from typing import Any
+
+
+from .utils import (
+    FixedSizeDict,
+    compute_alpha,
+    convert_on_off_bool,
+    convert_volume,
+    db_to_linear_flattened,
+    linear_to_db_flattened,
+    lookup_description,
+)
 
 from .api import LyngdorfApi
 from .const import (
@@ -20,154 +29,11 @@ from .const import (
     DEFAULT_MIN_LIPSYNC,
     DEFAULT_PROTOCOL,
     DEVICE_PROTOCOLS,
-    MIN_VOLUME_DB,
     DeviceModel,
 )
 
-_MIN_VOLUME_LINEAR: Final = 0.02
-_MAX_VOLUME_LINEAR: Final = 1.0
-_LINEAR_REF = 0.57  # Reference linear value
-_FRACTION = 0.5  # Midpoint fraction for dB_ref
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def compute_alpha(
-    max_db: float,
-    linear_ref: float = _LINEAR_REF,
-    f: float = _FRACTION,
-    min_linear: float = _MIN_VOLUME_LINEAR,
-    max_linear: float = _MAX_VOLUME_LINEAR,
-    min_db: float = MIN_VOLUME_DB,
-):
-    """
-    Automatically compute the alpha based only on max_db.
-    The reference dB is chosen as a fraction 'f' of the dB range.
-    """
-    # Compute reference dB
-    dB_ref = min_db + f * (max_db - min_db)
-
-    # Normalized log-linear position
-    t = (math.log10(linear_ref) - math.log10(min_linear)) / (
-        math.log10(max_linear) - math.log10(min_linear)
-    )
-
-    # Normalized dB fraction
-    t_flat = (dB_ref - min_db) / (max_db - min_db)
-
-    # Compute alpha
-    alpha = math.log(t_flat) / math.log(t)
-    return alpha
-
-
-def linear_to_db_flattened(value: float, max_volume: float, alpha: float) -> float:
-    """Convert a linear float [0-1] to dB (0.5 decimal)."""
-    # Clamp input
-    value = max(min(value, _MAX_VOLUME_LINEAR), _MIN_VOLUME_LINEAR)
-
-    # Log scale interpolation
-    log_min = math.log10(_MIN_VOLUME_LINEAR)
-    log_max = math.log10(_MAX_VOLUME_LINEAR)
-    log_value = math.log10(value)
-    t = (log_value - log_min) / (log_max - log_min)
-
-    # Apply curve exponent to flatten low end
-    t_flat = t**alpha
-
-    db = MIN_VOLUME_DB + t_flat * (max_volume - MIN_VOLUME_DB)
-
-    # Round to 0.5 dB steps if within range
-    if MIN_VOLUME_DB < db < max_volume:
-        db = round(db * 2) / 2
-    return db
-
-
-def db_to_linear_flattened(db: float, max_volume: float, alpha: float) -> float:
-    """Convert dB value to a float linear value [0-1] (rounded to 3 decimals)."""
-    # Clamp dB
-    db = round(max(min(db, max_volume), MIN_VOLUME_DB), 1)
-
-    # Compute normalized position in [0,1]
-    t_flat = (db - MIN_VOLUME_DB) / (max_volume - MIN_VOLUME_DB)
-
-    # Inverse of curve exponent
-    t = t_flat ** (1 / alpha)
-
-    # Compute log-scale linear value
-    log_min = math.log10(_MIN_VOLUME_LINEAR)
-    log_max = math.log10(_MAX_VOLUME_LINEAR)
-    log_value = log_min + t * (log_max - log_min)
-
-    linear_value = 10**log_value
-    return round(linear_value, 3)
-
-
-@attr.define(auto_attribs=True)
-class FixedSizeDict:
-    max_size: int = 0
-    _items: dict[int, str] = attr.ib(factory=dict[int, str], init=False)
-
-    def set_size(self, size: int) -> None:
-        """Set a new size limit and clear existing items."""
-        if size < 0:
-            raise ValueError("max_size must be >= 0")
-        self.max_size = size
-        self._items.clear()
-
-    def add(self, item_id: int, value: str) -> None:
-        """Add a new item if limit and uniqueness are respected."""
-        if self.is_full():
-            raise ValueError(f"Cannot add more than {self.max_size} items")
-        if item_id in self._items:
-            raise ValueError(f"Item with id '{item_id}' already exists")
-        self._items[item_id] = value
-
-    def get_all(self) -> list[str]:
-        """Return all items."""
-        return list(self._items.values())
-
-    def get_by_id(self, item_id: int) -> str | None:
-        """Lookup value by id."""
-        return self._items.get(item_id)
-
-    def get_by_value(self, value: str) -> int | None:
-        """Lookup id by value."""
-        for k, v in self._items.items():
-            if v == value:
-                return k
-        return None
-
-    def is_full(self) -> bool:
-        """Check if max item count has been reached."""
-        return len(self._items) >= self.max_size
-
-    def __len__(self) -> int:
-        return len(self._items)
-
-    def __contains__(self, item_id: int) -> bool:
-        return item_id in self._items
-
-
-def convert_on_off_bool(value: str) -> bool | None:
-    """Convert a 1/0 and ON/OFF string to bool."""
-    return {"1": True, "ON": True, "0": False, "OFF": False}.get(value)
-
-
-def convert_volume(value: float | str) -> float | None:
-    """Convert volume to float."""
-    try:
-        return float(value) / 10.0
-    except (TypeError, ValueError):
-        return None
-
-
-def lookup_description(key_str: str, lookup: Mapping[int, str | None]) -> str | None:
-    """Convert the key to int and return value from the lookup dict, or None if invalid."""
-    try:
-        key = int(key_str)
-    except ValueError:
-        return None
-    return lookup.get(key)
 
 
 def notify_callback(
@@ -242,6 +108,24 @@ class LyngdorfDevice:
     )
     _loudness: bool | None = attr.field(
         converter=attr.converters.optional(convert_on_off_bool), default=None
+    )
+    _bass_trim: float | None = attr.field(
+        converter=attr.converters.optional(convert_volume), default=None
+    )
+    _treble_trim: float | None = attr.field(
+        converter=attr.converters.optional(convert_volume), default=None
+    )
+    _center_trim: float | None = attr.field(
+        converter=attr.converters.optional(convert_volume), default=None
+    )
+    _heights_trim: float | None = attr.field(
+        converter=attr.converters.optional(convert_volume), default=None
+    )
+    _lfe_trim: float | None = attr.field(
+        converter=attr.converters.optional(convert_volume), default=None
+    )
+    _surrounds_trim: float | None = attr.field(
+        converter=attr.converters.optional(convert_volume), default=None
     )
 
     def __attrs_post_init__(self) -> None:
@@ -444,6 +328,38 @@ class LyngdorfDevice:
         """Handle a loudness event."""
         self._loudness = params[0] if params else None
 
+    @notify_callback
+    async def _async_bass_trim_callback(self, event: str, params: list[str]) -> None:
+        """Handle a bass trim event."""
+        self._bass_trim = params[0] if params else None
+
+    @notify_callback
+    async def _async_treble_trim_callback(self, event: str, params: list[str]) -> None:
+        """Handle a treble trim event."""
+        self._treble_trim = params[0] if params else None
+
+    @notify_callback
+    async def _async_center_trim_callback(self, event: str, params: list[str]) -> None:
+        """Handle a center trim event."""
+        self._center_trim = params[0] if params else None
+
+    @notify_callback
+    async def _async_heights_trim_callback(self, event: str, params: list[str]) -> None:
+        """Handle a height trim event."""
+        self._heights_trim = params[0] if params else None
+
+    @notify_callback
+    async def _async_lfe_trim_callback(self, event: str, params: list[str]) -> None:
+        """Handle a lfe trim event."""
+        self._lfe_trim = params[0] if params else None
+
+    @notify_callback
+    async def _async_surrounds_trim_callback(
+        self, event: str, params: list[str]
+    ) -> None:
+        """Handle a surround trim event."""
+        self._surrounds_trim = params[0] if params else None
+
     async def register_callbacks(self) -> None:
         """Ensure that configuration is loaded from processor asynchronously."""
         _LOGGER.debug("Starting device setup")
@@ -502,6 +418,12 @@ class LyngdorfDevice:
         )
         self._api.register_callback("DTSDIALOG", self._async_dts_dialog_callback)
         self._api.register_callback("LOUDNESS", self._async_loudness_callback)
+        self._api.register_callback("TRIMBASS", self._async_bass_trim_callback)
+        self._api.register_callback("TRIMTREBLE", self._async_treble_trim_callback)
+        self._api.register_callback("TRIMCENTER", self._async_center_trim_callback)
+        self._api.register_callback("TRIMHEIGHT", self._async_heights_trim_callback)
+        self._api.register_callback("TRIMLFE", self._async_lfe_trim_callback)
+        self._api.register_callback("TRIMSURRS", self._async_surrounds_trim_callback)
 
     def _linear_to_db_flattened(self, value: float) -> float:
         """Convert a linear float [0-1] to dB (0.5 decimal)."""

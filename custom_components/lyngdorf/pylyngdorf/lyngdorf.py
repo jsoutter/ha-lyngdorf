@@ -9,16 +9,25 @@ from typing import TypeVar
 
 import attr
 
+
 from .const import (
     DEFAULT_PORT,
     DEVICE_PROTOCOLS,
     MIN_VOLUME_DB,
+    TRIM_RANGE_BASS_TREBLE,
+    TRIM_RANGE_CHANNEL,
     DeviceModel,
     LyngdorfCommands,
 )
 from .device import LyngdorfDevice
 
 T = TypeVar("T", bound="Lyngdorf")
+
+
+def validate_trim(trim: float, range: float) -> None:
+    """Validate trim value"""
+    if abs(trim) > range:
+        raise ValueError(f"Invalid trim: {trim}")
 
 
 @attr.define()
@@ -97,9 +106,9 @@ class Lyngdorf(LyngdorfDevice):
         return self._api.device_protocol.multichannel
 
     @property
-    def power(self) -> bool | None:
+    def power(self) -> bool:
         """Boolean if device is currently on."""
-        return self._power
+        return self._power or False
 
     @property
     def volume(self) -> float | None:
@@ -221,6 +230,36 @@ class Lyngdorf(LyngdorfDevice):
         """Boolean if loudness is enabled."""
         return self._loudness
 
+    @property
+    def bass_trim(self) -> float | None:
+        """Return the bass trim of the device as float."""
+        return self._bass_trim
+
+    @property
+    def treble_trim(self) -> float | None:
+        """Return the treble trim of the device as float."""
+        return self._treble_trim
+
+    @property
+    def center_trim(self) -> float | None:
+        """Return the center channel trim of the device as float."""
+        return self._center_trim
+
+    @property
+    def heights_trim(self) -> float | None:
+        """Return the height channels trim of the device as float."""
+        return self._heights_trim
+
+    @property
+    def lfe_trim(self) -> float | None:
+        """Return the lfe channel trim of the device as float."""
+        return self._lfe_trim
+
+    @property
+    def surrounds_trim(self) -> float | None:
+        """Return the surround channels trim of the device as float."""
+        return self._surrounds_trim
+
     ##########
     # Setter #
     ##########
@@ -323,4 +362,52 @@ class Lyngdorf(LyngdorfDevice):
     async def async_next(self) -> None:
         """Send next track command."""
         cmd = self._api.device_protocol.commands.get_command(LyngdorfCommands.NEXT)
+        await self._api.async_send_commands(cmd)
+
+    async def async_set_bass_trim(self, trim: float) -> None:
+        """Set bass trim."""
+        validate_trim(trim, TRIM_RANGE_BASS_TREBLE)
+        cmd = self._api.device_protocol.commands.get_command(
+            LyngdorfCommands.TRIM_BASS, trim * 10
+        )
+        await self._api.async_send_commands(cmd)
+
+    async def async_set_treble_trim(self, trim: float) -> None:
+        """Set treble trim."""
+        validate_trim(trim, TRIM_RANGE_BASS_TREBLE)
+        cmd = self._api.device_protocol.commands.get_command(
+            LyngdorfCommands.TRIM_TREBLE, trim * 10
+        )
+        await self._api.async_send_commands(cmd)
+
+    async def async_set_center_trim(self, trim: float) -> None:
+        """Set center channel trim."""
+        validate_trim(trim, TRIM_RANGE_CHANNEL)
+        cmd = self._api.device_protocol.commands.get_command(
+            LyngdorfCommands.TRIM_CENTER, trim * 10
+        )
+        await self._api.async_send_commands(cmd)
+
+    async def async_set_heights_trim(self, trim: float) -> None:
+        """Set height channels trim."""
+        validate_trim(trim, TRIM_RANGE_CHANNEL)
+        cmd = self._api.device_protocol.commands.get_command(
+            LyngdorfCommands.TRIM_HEIGHTS, trim * 10
+        )
+        await self._api.async_send_commands(cmd)
+
+    async def async_set_lfe_trim(self, trim: float) -> None:
+        """Set lfe channel trim."""
+        validate_trim(trim, TRIM_RANGE_CHANNEL)
+        cmd = self._api.device_protocol.commands.get_command(
+            LyngdorfCommands.TRIM_LFE, trim * 10
+        )
+        await self._api.async_send_commands(cmd)
+
+    async def async_set_surrounds_trim(self, trim: float) -> None:
+        """Set surround chaneels trim."""
+        validate_trim(trim, TRIM_RANGE_CHANNEL)
+        cmd = self._api.device_protocol.commands.get_command(
+            LyngdorfCommands.TRIM_SURROUNDS, trim * 10
+        )
         await self._api.async_send_commands(cmd)

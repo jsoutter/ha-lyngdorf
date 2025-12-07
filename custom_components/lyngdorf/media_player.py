@@ -40,7 +40,9 @@ _SUPPORT_LYNGDORF = (
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the platform from a config entry."""
     coordinator: LyngdorfCoordinator = entry.runtime_data
@@ -56,7 +58,7 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
     _attr_device_class = MediaPlayerDeviceClass.RECEIVER
 
     def __init__(self, coordinator: LyngdorfCoordinator) -> None:
-        """Initialize media player."""
+        """Initialize media player entity."""
         super().__init__(coordinator)
 
         self._attr_supported_features = _SUPPORT_LYNGDORF

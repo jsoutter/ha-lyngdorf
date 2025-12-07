@@ -72,7 +72,7 @@ class LyngdorfSelect(LyngdorfEntity, SelectEntity):
         coordinator: LyngdorfCoordinator,
         description: LyngdorfSelectDescription,
     ) -> None:
-        """Initialize sensor."""
+        """Initialize select entity."""
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{self._attr_unique_id}_{description.key}"
