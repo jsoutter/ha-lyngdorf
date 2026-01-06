@@ -19,12 +19,12 @@ if TYPE_CHECKING:
     from homeassistant.helpers.typing import StateType
     from .pylyngdorf.lyngdorf import Lyngdorf
 
-_STREAMING_SOURCE: Final = "streaming_source"
-_AUDIO_INPUT: Final = "audio_input"
-_AUDIO_INFORMATION: Final = "audio_information"
-_VIDEO_INPUT: Final = "video_input"
-_VIDEO_INFORMATION: Final = "video_information"
-_VIDEO_OUPUT: Final = "video_output"
+STREAMING_SOURCE: Final = "streaming_source"
+AUDIO_INPUT: Final = "audio_input"
+AUDIO_INFORMATION: Final = "audio_information"
+VIDEO_INPUT: Final = "video_input"
+VIDEO_INFORMATION: Final = "video_information"
+VIDEO_OUPUT: Final = "video_output"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -37,41 +37,41 @@ class LyngdorfSensorEntityDescription(SensorEntityDescription):
 
 SENSOR_TYPES: tuple[LyngdorfSensorEntityDescription, ...] = (
     LyngdorfSensorEntityDescription(
-        key=_STREAMING_SOURCE,
-        translation_key=_STREAMING_SOURCE,
+        key=STREAMING_SOURCE,
+        translation_key=STREAMING_SOURCE,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda receiver: receiver.stream_type,
     ),
     LyngdorfSensorEntityDescription(
-        key=_AUDIO_INPUT,
-        translation_key=_AUDIO_INPUT,
+        key=AUDIO_INPUT,
+        translation_key=AUDIO_INPUT,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda receiver: receiver.audio_input,
         multichannel=True,
     ),
     LyngdorfSensorEntityDescription(
-        key=_AUDIO_INFORMATION,
-        translation_key=_AUDIO_INFORMATION,
+        key=AUDIO_INFORMATION,
+        translation_key=AUDIO_INFORMATION,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda receiver: receiver.audio_type,
     ),
     LyngdorfSensorEntityDescription(
-        key=_VIDEO_INPUT,
-        translation_key=_VIDEO_INPUT,
+        key=VIDEO_INPUT,
+        translation_key=VIDEO_INPUT,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda receiver: receiver.video_input,
         multichannel=True,
     ),
     LyngdorfSensorEntityDescription(
-        key=_VIDEO_INFORMATION,
-        translation_key=_VIDEO_INFORMATION,
+        key=VIDEO_INFORMATION,
+        translation_key=VIDEO_INFORMATION,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda receiver: receiver.video_type,
         multichannel=True,
     ),
     LyngdorfSensorEntityDescription(
-        key=_VIDEO_OUPUT,
-        translation_key=_VIDEO_OUPUT,
+        key=VIDEO_OUPUT,
+        translation_key=VIDEO_OUPUT,
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda receiver: receiver.video_output,
         multichannel=True,

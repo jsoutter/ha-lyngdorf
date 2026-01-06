@@ -1,5 +1,5 @@
 """
-Automation Library for Lyngdorf processors.
+Automation Library for Lyngdorf devices.
 
 :license: MIT, see LICENSE for more details.
 """

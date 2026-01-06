@@ -12,7 +12,7 @@
   "loggers": [
     "pylyngdorf"
   ],
-  "version": "0.3.1",
+  "version": "0.4.0",
   "zeroconf": [
     "_slactrl._tcp.local."
   ]

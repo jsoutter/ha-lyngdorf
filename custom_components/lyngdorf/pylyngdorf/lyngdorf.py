@@ -1,38 +1,39 @@
 #!/usr/bin/env python3
 """
-Module implements the interface to Lyngdorf processors.
+Module implements the interface to Lyngdorf devices.
 
 :license: MIT, see LICENSE for more details.
 """
 
-from typing import TypeVar
+from typing import Any, TypeVar
 
 import attr
 
-
+from .config import DEVICE_PROTOCOLS
 from .const import (
     DEFAULT_PORT,
-    DEVICE_PROTOCOLS,
     MIN_VOLUME_DB,
     TRIM_RANGE_BASS_TREBLE,
     TRIM_RANGE_CHANNEL,
     DeviceModel,
-    LyngdorfCommands,
+    LyngdorfCommand,
 )
 from .device import LyngdorfDevice
 
 T = TypeVar("T", bound="Lyngdorf")
 
 
-def validate_trim(trim: float, range: float) -> None:
-    """Validate trim value"""
-    if abs(trim) > range:
-        raise ValueError(f"Invalid trim: {trim}")
+def validate_trim(trim: float, range_: float) -> None:
+    """Validate trim value within dB range."""
+    if abs(trim) > range_:
+        raise ValueError(
+            f"Invalid trim value {trim}. Must be between -{range_} and +{range_}."
+        )
 
 
 @attr.define()
 class Lyngdorf(LyngdorfDevice):
-    """Implements a class with device information of the processor."""
+    """Implements a class with device information."""
 
     _host: str = attr.field(converter=str)
     _port: int = attr.field(converter=int)
@@ -66,25 +67,13 @@ class Lyngdorf(LyngdorfDevice):
         if self._device_model is not None and self._device_model in DEVICE_PROTOCOLS:
             self._api.device_protocol = DEVICE_PROTOCOLS[self._device_model]
 
-    async def async_send_commands(
-        self, *commands: str, skip_confirmation: bool = False
-    ) -> None:
-        """Send commands to the processor."""
-        await self._api.async_send_commands(
-            *commands, skip_confirmation=skip_confirmation
-        )
-
-    def send_commands(self, *commands: str) -> None:
-        """Send commands to the processor."""
-        self._api.send_commands(*commands)
-
     async def async_connect(self) -> None:
-        """Connect to the interface of the processor."""
-        await self.register_callbacks()
+        """Connect to the interface of the device."""
+        self._register_callbacks()
         await self._api.async_connect()
 
     async def async_disconnect(self) -> None:
-        """Disconnect from the interface of the processor."""
+        """Disconnect from the interface of the device."""
         await self._api.async_disconnect()
 
     ##############
@@ -102,13 +91,18 @@ class Lyngdorf(LyngdorfDevice):
 
     @property
     def multichannel(self) -> bool:
-        """Boolean if device is multichannel processor."""
+        """Return True if device is multichannel device."""
         return self._api.device_protocol.multichannel
 
     @property
     def power(self) -> bool:
-        """Boolean if device is currently on."""
+        """Return True if device is currently on."""
         return self._power or False
+
+    @property
+    def available(self):
+        """Return True if device is available."""
+        return self._api.healthy
 
     @property
     def volume(self) -> float | None:
@@ -116,13 +110,13 @@ class Lyngdorf(LyngdorfDevice):
         return self._volume
 
     @property
-    def volume_percent(self) -> float | None:
-        """Return the volume percent of the device as float."""
-        return self._volume_percent
+    def volume_level(self) -> float | None:
+        """Return the volume level (0.0–1.0) of the device as float."""
+        return self._volume_level
 
     @property
     def muted(self) -> bool | None:
-        """Boolean if volume is currently muted."""
+        """Return True if volume is currently muted."""
         return self._muted
 
     @property
@@ -216,8 +210,8 @@ class Lyngdorf(LyngdorfDevice):
         return self._lipsync
 
     @property
-    def dts_dialog_available(self) -> float | None:
-        """Boolean if dts dialog is available."""
+    def dts_dialog_available(self) -> bool | None:
+        """Return True if dts dialog is available."""
         return self._dts_dialog_available
 
     @property
@@ -226,8 +220,8 @@ class Lyngdorf(LyngdorfDevice):
         return self._dts_dialog
 
     @property
-    def loudness(self) -> float | None:
-        """Boolean if loudness is enabled."""
+    def loudness(self) -> bool | None:
+        """Return True if loudness is enabled."""
         return self._loudness
 
     @property
@@ -263,151 +257,124 @@ class Lyngdorf(LyngdorfDevice):
     ##########
     # Setter #
     ##########
+    async def async_send_command(
+        self,
+        command: str | LyngdorfCommand,
+        arg: Any | None = None,
+        skip_confirmation: bool = False,
+    ) -> None:
+        """Send command to the device."""
+        cmd = (
+            self._api.device_protocol.commands.get_command(command)
+            if isinstance(command, LyngdorfCommand)
+            else self._api.device_protocol.commands.get_command_by_name(command)
+        )
+
+        await self._api.async_send_commands(
+            cmd.format(arg), skip_confirmation=skip_confirmation
+        )
+
     async def async_power_on(self) -> None:
-        """Turn on processor."""
-        cmd = self._api.device_protocol.commands.get_command(LyngdorfCommands.POWER_ON)
-        await self._api.async_send_commands(cmd)
+        """Turn on device."""
+        await self.async_send_command(LyngdorfCommand.POWER_ON)
 
     async def async_power_off(self) -> None:
-        """Turn off processor."""
-        cmd = self._api.device_protocol.commands.get_command(LyngdorfCommands.POWER_OFF)
-        await self._api.async_send_commands(cmd)
+        """Turn off device."""
+        await self.async_send_command(LyngdorfCommand.POWER_OFF)
 
     async def async_volume_up(self) -> None:
         """Increase volume."""
-        cmd = self._api.device_protocol.commands.get_command(LyngdorfCommands.VOLUME_UP)
-        await self._api.async_send_commands(cmd, skip_confirmation=True)
+        await self.async_send_command(LyngdorfCommand.VOLUME_UP, skip_confirmation=True)
 
     async def async_volume_down(self) -> None:
         """Decrease volume."""
-        cmd = self._api.device_protocol.commands.get_command(
-            LyngdorfCommands.VOLUME_DOWN
+        await self.async_send_command(
+            LyngdorfCommand.VOLUME_DOWN, skip_confirmation=True
         )
-        await self._api.async_send_commands(cmd, skip_confirmation=True)
 
     async def async_set_volume(self, volume: float) -> None:
-        """Set processor volume."""
+        """Set device volume."""
         if volume < MIN_VOLUME_DB or volume > self.max_volume:
             raise ValueError(f"Invalid volume: {volume}")
 
-        cmd = self._api.device_protocol.commands.get_command(
-            LyngdorfCommands.VOLUME, volume * 10
-        )
-        await self._api.async_send_commands(cmd)
+        await self.async_send_command(LyngdorfCommand.VOLUME, int(volume * 10))
 
-    async def async_set_volume_percent(self, volume: float) -> None:
-        """Set processor volume percent."""
+    async def async_set_volume_level(self, volume: float) -> None:
+        """Set device volume level (0.0–1.0)."""
         db = self._linear_to_db_flattened(volume)
         await self.async_set_volume(db)
 
     async def async_mute(self, mute: bool) -> None:
-        """Mute processor."""
-        cmd = self._api.device_protocol.commands.get_command(
-            LyngdorfCommands.MUTE_ON if mute else LyngdorfCommands.MUTE_OFF
+        """Mute or unmute the device."""
+        await self.async_send_command(
+            LyngdorfCommand.MUTE_ON if mute else LyngdorfCommand.MUTE_OFF
         )
-        await self._api.async_send_commands(cmd)
 
     async def async_set_source(self, source: str) -> None:
-        "Set input source of processor."
+        "Set input source of device."
         if (index := self._sources.get_by_value(source)) is not None:
-            cmd = self._api.device_protocol.commands.get_command(
-                LyngdorfCommands.SOURCE, index
-            )
-            await self._api.async_send_commands(cmd)
+            await self.async_send_command(LyngdorfCommand.SOURCE, index)
 
     async def async_set_voicing(self, voicing: str) -> None:
-        """Set voicing of processor."""
+        """Set voicing of device."""
         if (index := self._voicings.get_by_value(voicing)) is not None:
-            cmd = self._api.device_protocol.commands.get_command(
-                LyngdorfCommands.VOICING, index
-            )
-            await self._api.async_send_commands(cmd)
+            await self.async_send_command(LyngdorfCommand.VOICING, index)
 
     async def async_set_focus_position(self, focus_position: str) -> None:
-        """Set focus position of processor."""
+        """Set focus position of device."""
         if (index := self._focus_positions.get_by_value(focus_position)) is not None:
-            cmd = self._api.device_protocol.commands.get_command(
-                LyngdorfCommands.FOCUS_POSITION, index
-            )
-            await self._api.async_send_commands(cmd)
+            await self.async_send_command(LyngdorfCommand.FOCUS_POSITION, index)
 
     async def async_set_audio_mode(self, audio_mode: str) -> None:
-        """Set audio mode of processor."""
+        """Set audio mode of device."""
         if (index := self._audio_modes.get_by_value(audio_mode)) is not None:
-            cmd = self._api.device_protocol.commands.get_command(
-                LyngdorfCommands.AUDIO_MODE, index
-            )
-            await self._api.async_send_commands(cmd)
+            await self.async_send_command(LyngdorfCommand.AUDIO_MODE, index)
 
-    async def async_set_lipsync(self, lipsync: float) -> None:
-        """Set processor lipsync."""
+    async def async_set_lipsync(self, lipsync: int) -> None:
+        """Set device lipsync."""
         if lipsync < self.min_lipsync or lipsync > self.max_lipsync:
             raise ValueError(f"Invalid lipsync: {lipsync}")
 
-        cmd = self._api.device_protocol.commands.get_command(
-            LyngdorfCommands.LIPSYNC, lipsync
-        )
-        await self._api.async_send_commands(cmd)
+        await self.async_send_command(LyngdorfCommand.LIPSYNC, lipsync)
 
     async def async_play(self) -> None:
         """Send play command."""
-        cmd = self._api.device_protocol.commands.get_command(LyngdorfCommands.PLAY)
-        await self._api.async_send_commands(cmd)
+        await self.async_send_command(LyngdorfCommand.PLAY)
 
     async def async_previous(self) -> None:
         """Send previous track command."""
-        cmd = self._api.device_protocol.commands.get_command(LyngdorfCommands.PREVIOUS)
-        await self._api.async_send_commands(cmd)
+        await self.async_send_command(LyngdorfCommand.PREVIOUS)
 
     async def async_next(self) -> None:
         """Send next track command."""
-        cmd = self._api.device_protocol.commands.get_command(LyngdorfCommands.NEXT)
-        await self._api.async_send_commands(cmd)
+        await self.async_send_command(LyngdorfCommand.NEXT)
+
+    async def _set_trim(
+        self, command: LyngdorfCommand, trim: float, range_: float
+    ) -> None:
+        validate_trim(trim, range_)
+        await self.async_send_command(command, int(trim * 10))
 
     async def async_set_bass_trim(self, trim: float) -> None:
         """Set bass trim."""
-        validate_trim(trim, TRIM_RANGE_BASS_TREBLE)
-        cmd = self._api.device_protocol.commands.get_command(
-            LyngdorfCommands.TRIM_BASS, trim * 10
-        )
-        await self._api.async_send_commands(cmd)
+        await self._set_trim(LyngdorfCommand.BASS_TRIM, trim, TRIM_RANGE_BASS_TREBLE)
 
     async def async_set_treble_trim(self, trim: float) -> None:
         """Set treble trim."""
-        validate_trim(trim, TRIM_RANGE_BASS_TREBLE)
-        cmd = self._api.device_protocol.commands.get_command(
-            LyngdorfCommands.TRIM_TREBLE, trim * 10
-        )
-        await self._api.async_send_commands(cmd)
+        await self._set_trim(LyngdorfCommand.TREBLE_TRIM, trim, TRIM_RANGE_BASS_TREBLE)
 
     async def async_set_center_trim(self, trim: float) -> None:
         """Set center channel trim."""
-        validate_trim(trim, TRIM_RANGE_CHANNEL)
-        cmd = self._api.device_protocol.commands.get_command(
-            LyngdorfCommands.TRIM_CENTER, trim * 10
-        )
-        await self._api.async_send_commands(cmd)
+        await self._set_trim(LyngdorfCommand.CENTER_TRIM, trim, TRIM_RANGE_CHANNEL)
 
     async def async_set_heights_trim(self, trim: float) -> None:
         """Set height channels trim."""
-        validate_trim(trim, TRIM_RANGE_CHANNEL)
-        cmd = self._api.device_protocol.commands.get_command(
-            LyngdorfCommands.TRIM_HEIGHTS, trim * 10
-        )
-        await self._api.async_send_commands(cmd)
+        await self._set_trim(LyngdorfCommand.HEIGHTS_TRIM, trim, TRIM_RANGE_CHANNEL)
 
     async def async_set_lfe_trim(self, trim: float) -> None:
         """Set lfe channel trim."""
-        validate_trim(trim, TRIM_RANGE_CHANNEL)
-        cmd = self._api.device_protocol.commands.get_command(
-            LyngdorfCommands.TRIM_LFE, trim * 10
-        )
-        await self._api.async_send_commands(cmd)
+        await self._set_trim(LyngdorfCommand.LFE_TRIM, trim, TRIM_RANGE_CHANNEL)
 
     async def async_set_surrounds_trim(self, trim: float) -> None:
-        """Set surround chaneels trim."""
-        validate_trim(trim, TRIM_RANGE_CHANNEL)
-        cmd = self._api.device_protocol.commands.get_command(
-            LyngdorfCommands.TRIM_SURROUNDS, trim * 10
-        )
-        await self._api.async_send_commands(cmd)
+        """Set surround channels trim."""
+        await self._set_trim(LyngdorfCommand.SURROUNDS_TRIM, trim, TRIM_RANGE_CHANNEL)

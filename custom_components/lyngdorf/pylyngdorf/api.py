@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Module implements API for Lyngdorf processors.
+Module implements API for Lyngdorf devices.
 
 :license: MIT, see LICENSE for more details.
 """
@@ -15,17 +15,19 @@ from typing import Any, Final
 
 import attr
 
+from .config import DeviceProtocol
 from .const import (
     COMMAND_PREFIX,
     DEFAULT_PORT,
     ECHO_PREFIX,
+    LYNGDORF_ATTR_SETATTR,
+    MIN_MESSAGE_LENGTH,
     MONITOR_INTERVAL,
     RECONNECT_BACKOFF,
     RECONNECT_MAX_WAIT,
     RECONNECT_SCALE,
-    DeviceProtocol,
-    LyngdorfCommands,
-    LyngdorfQueries,
+    LyngdorfCommand,
+    LyngdorfQuery,
 )
 from .exceptions import (
     LyngdorfNetworkError,
@@ -104,7 +106,7 @@ class LyngdorfProtocol(asyncio.Protocol):
         self.transport = None
 
 
-@attr.define(unsafe_hash=False)
+@attr.define(unsafe_hash=False, on_setattr=LYNGDORF_ATTR_SETATTR)
 class LyngdorfApi:
     """Handle responses from the Lyngdorf interface."""
 
@@ -113,6 +115,7 @@ class LyngdorfApi:
     port: int = attr.field(converter=int, default=DEFAULT_PORT)
     timeout: float = attr.field(converter=float, default=2.0)
     _connection_enabled: bool = attr.field(default=False)
+    _connection_disabled_event: asyncio.Event = attr.field(init=False)
     _last_message_time: float = attr.field(default=-1.0)
     _connect_lock: asyncio.Lock = attr.field(default=attr.Factory(asyncio.Lock))
     _reconnect_task: asyncio.Task[Any] | None = attr.field(default=None)
@@ -120,7 +123,7 @@ class LyngdorfApi:
     _protocol: LyngdorfProtocol | None = attr.field(default=None)
     _callback_tasks: set[asyncio.Task[Any]] = attr.field(factory=lambda: set())
     _send_lock: asyncio.Lock = attr.field(default=attr.Factory(asyncio.Lock))
-    _send_confirmation_timeout: float = attr.field(converter=float, default=2.0)
+    _send_confirmation_timeout: float = attr.field(converter=float, default=0.5)
     _pending_confirmations: dict[str, asyncio.Future[None]] = attr.field(
         factory=dict[str, asyncio.Future[None]]
     )
@@ -148,6 +151,10 @@ class LyngdorfApi:
         """Establish a connection to the processor."""
         loop = asyncio.get_running_loop()
         _LOGGER.debug("%s: establishing connection", self.host)
+
+        if not hasattr(self, "_connection_disabled_event"):
+            self._connection_disabled_event = asyncio.Event()
+
         try:
             transport_protocol = await asyncio.wait_for(
                 loop.create_connection(
@@ -172,16 +179,24 @@ class LyngdorfApi:
             _LOGGER.debug("%s: Connection failed on reconnect: %s", self.host, err)
             raise LyngdorfNetworkError(f"OSError: {err}", "connect") from err
         self._protocol = transport_protocol[1]
+
         _LOGGER.debug("%s: connection established", self.host)
         self._connection_enabled = True
+        self._connection_disabled_event.clear()
+
         self._last_message_time = time.monotonic()
         self._monitor_task = asyncio.create_task(
             self._schedule_monitor(MONITOR_INTERVAL)
         )
 
-        cmd = self.device_protocol.commands.get_command(LyngdorfCommands.VERBOSE, 2)
-        await self._async_send_command(cmd, skip_confirmation=True)
-        await self.async_send_commands(*self.device_protocol.queries.values())
+        cmd = self.device_protocol.commands.get_command(LyngdorfCommand.VERBOSE)
+        await self._async_send_command(cmd.format(2), skip_confirmation=True)
+        await asyncio.sleep(0.1)
+        await self.async_send_commands(
+            *self.device_protocol.queries.values(),
+            raise_on_error=False,
+            confirmation_timeout=2.0,
+        )
 
     def _stop_monitor(self) -> None:
         """Stop the monitor task."""
@@ -212,7 +227,7 @@ class LyngdorfApi:
             # Keep the connection alive
             _LOGGER.debug("%s: Sending keep alive", self.host)
             await self._async_send_command(
-                self.device_protocol.queries[LyngdorfQueries.VERBOSE]
+                self.device_protocol.queries[LyngdorfQuery.VERBOSE]
             )
 
     def _handle_disconnected(self) -> None:
@@ -232,6 +247,8 @@ class LyngdorfApi:
         async with self._connect_lock:
             _LOGGER.debug("%s: disconnecting", self.host)
             self._connection_enabled = False
+            self._connection_disabled_event.set()
+
             self._stop_monitor()
             reconnect_task = self._reconnect_task
             if self._reconnect_task is not None:
@@ -382,13 +399,18 @@ class LyngdorfApi:
             _LOGGER.debug("%s send: %s%s", self.host, COMMAND_PREFIX, command)
 
     async def _async_send_command(
-        self, command: str, skip_confirmation: bool = False
+        self,
+        command: str,
+        skip_confirmation: bool = False,
+        raise_on_error: bool = True,
+        confirmation_timeout: float | None = None,
     ) -> None:
         """Send a command and wait for confirmation unless skipped."""
         async with self._send_lock:
             if not self.connected or not self.healthy:
                 raise LyngdorfProcessingError(
-                    f"Error sending command {command}. Connected: {self.connected}, Connection healthy: {self.healthy}"
+                    f"Error sending command {command}: "
+                    f"Connected: {self.connected}, Connection healthy: {self.healthy}"
                 )
 
             future: asyncio.Future[None] | None = None
@@ -402,18 +424,19 @@ class LyngdorfApi:
                 try:
                     await asyncio.wait_for(
                         future,
-                        timeout=self._send_confirmation_timeout,
+                        timeout=confirmation_timeout or self._send_confirmation_timeout,
                     )
-                except TimeoutError:
-                    _LOGGER.warning(
-                        "Timeout waiting for confirmation of command: %s", command
-                    )
+                except TimeoutError as err:
+                    msg = f"Timeout waiting for confirmation of command: {command}"
+                    _LOGGER.warning(msg)
+                    if raise_on_error:
+                        raise LyngdorfProcessingError(msg) from err
                 finally:
                     self._pending_confirmations.pop(command, None)
 
     async def _async_send_confirmation_callback(self, message: str) -> None:
         """Confirm that the command has been executed."""
-        if len(message) < 5 or not message.startswith(ECHO_PREFIX):
+        if len(message) < MIN_MESSAGE_LENGTH or not message.startswith(ECHO_PREFIX):
             return
 
         command = message[1:]
@@ -423,19 +446,43 @@ class LyngdorfApi:
             _LOGGER.debug("Command %s confirmed", command)
 
     async def async_send_commands(
-        self, *commands: str, skip_confirmation: bool = False
+        self,
+        *commands: str,
+        skip_confirmation: bool = False,
+        raise_on_error: bool = True,
+        confirmation_timeout: float | None = None,
     ) -> None:
         """Send commands to the processor."""
         for command in commands:
-            await self._async_send_command(command, skip_confirmation=skip_confirmation)
+            await self._async_send_command(
+                command,
+                skip_confirmation=skip_confirmation,
+                raise_on_error=raise_on_error,
+                confirmation_timeout=confirmation_timeout,
+            )
 
-    def send_commands(self, *commands: str, skip_confirmation: bool = False) -> None:
+    def send_commands(
+        self,
+        *commands: str,
+        skip_confirmation: bool = False,
+        raise_on_error: bool = True,
+        confirmation_timeout: float | None = None,
+    ) -> None:
         """Send commands to the processor."""
         task = asyncio.create_task(
-            self.async_send_commands(*commands, skip_confirmation=skip_confirmation)
+            self.async_send_commands(
+                *commands,
+                skip_confirmation=skip_confirmation,
+                raise_on_error=raise_on_error,
+                confirmation_timeout=confirmation_timeout,
+            )
         )
         self._send_tasks.add(task)
         task.add_done_callback(self._send_tasks.discard)
+
+    async def wait_while_connected(self) -> None:
+        """Block while the connection is enabled."""
+        await self._connection_disabled_event.wait()
 
     ##############
     # Properties #

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+import voluptuous as vol
+
 from homeassistant.components.media_player import (
     MediaPlayerDeviceClass,
     MediaPlayerEntity,
@@ -12,6 +14,9 @@ from homeassistant.components.media_player.const import (
     MediaPlayerEntityFeature,
     MediaPlayerState,
 )
+from homeassistant.helpers import entity_platform
+
+from pylyngdorf.const import MIN_VOLUME_DB
 
 
 from .entity import LyngdorfCoordinator, LyngdorfEntity
@@ -21,11 +26,10 @@ if TYPE_CHECKING:
 
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
+
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-_ATTR_VOLUME_NATIVE = "volume_native"
-
-_SUPPORT_LYNGDORF = (
+SUPPORT_LYNGDORF = (
     MediaPlayerEntityFeature.TURN_ON
     | MediaPlayerEntityFeature.TURN_OFF
     | MediaPlayerEntityFeature.VOLUME_SET
@@ -38,6 +42,14 @@ _SUPPORT_LYNGDORF = (
     | MediaPlayerEntityFeature.NEXT_TRACK
 )
 
+ATTR_VOLUME_NATIVE = "volume_native"
+ATTR_VOLUME_DB = "volume_db"
+ATTR_VOLUME_MIN_DB = "volume_min_db"
+ATTR_VOLUME_MAX_DB = "volume_max_db"
+
+
+SERVICE_SET_VOLUME_DB = "set_volume_db"
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -48,6 +60,13 @@ async def async_setup_entry(
     coordinator: LyngdorfCoordinator = entry.runtime_data
 
     async_add_entities([LyngdorfMediaPlayer(coordinator)], update_before_add=True)
+
+    platform = entity_platform.async_get_current_platform()
+    platform.async_register_entity_service(
+        SERVICE_SET_VOLUME_DB,
+        vol.Schema({vol.Required("volume_db"): vol.Coerce(float)}),
+        "async_set_volume_db",
+    )
 
 
 class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
@@ -61,7 +80,7 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
         """Initialize media player entity."""
         super().__init__(coordinator)
 
-        self._attr_supported_features = _SUPPORT_LYNGDORF
+        self._attr_supported_features = SUPPORT_LYNGDORF
         self._attr_supported_features |= (
             self._receiver.multichannel and MediaPlayerEntityFeature.SELECT_SOUND_MODE
         )
@@ -91,7 +110,11 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
 
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level, range 0..1."""
-        await self._receiver.async_set_volume_percent(volume)
+        await self._receiver.async_set_volume_level(volume)
+
+    async def async_set_volume_db(self, volume: float) -> None:
+        """Set volume in decibels."""
+        await self._receiver.async_set_volume(volume)
 
     async def async_mute_volume(self, mute: bool) -> None:
         """Mute/unmute player volume."""
@@ -128,7 +151,7 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
     @property
     def volume_level(self) -> float | None:
         """Volume level of the media player (0..1)."""
-        return self._receiver.volume_percent
+        return self._receiver.volume_level
 
     @property
     def is_volume_muted(self) -> bool | None:
@@ -159,9 +182,11 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
     def extra_state_attributes(self) -> Mapping[str, Any] | None:
         """Return device specific state attributes."""
         state_attributes = {}
-        state_attributes[_ATTR_VOLUME_NATIVE] = (
-            f"{self._receiver.volume:.1f}"
-            if self._receiver.volume is not None
-            else None
-        )
+        if self._receiver.volume is not None:
+            state_attributes[ATTR_VOLUME_NATIVE] = self._receiver.volume
+            state_attributes[ATTR_VOLUME_DB] = self._receiver.volume
+
+        state_attributes[ATTR_VOLUME_MIN_DB] = MIN_VOLUME_DB
+        state_attributes[ATTR_VOLUME_MAX_DB] = self._receiver.max_volume
+
         return state_attributes
