@@ -48,4 +48,4 @@ class LyngdorfRemote(LyngdorfEntity, RemoteEntity):
 
         for _ in range(num_repeats):
             for single_command in command:
-                await self._receiver.async_send_command(single_command)
+                await self._receiver.async_send_command(single_command.upper())

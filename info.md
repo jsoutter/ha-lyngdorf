@@ -15,7 +15,9 @@ The integration allows you to control an Lyngdorf processor using TCP sockets fr
 
 ### Supported Features
 
-| | MP-40, MP-50, MP-60 | TDAI-1120, TDAI-2210, TDAI-3400 |
+#### Media Player Entity
+
+| Function | MP-40, MP-50, MP-60 | TDAI-1120, TDAI-2210, TDAI-3400 |
 |-|-|-|
 | Get and set volume | ✅ | ✅ |
 | Increase or decrease volume | ✅ | ✅ |
@@ -27,7 +29,7 @@ The integration allows you to control an Lyngdorf processor using TCP sockets fr
 
 #### Select Entity
 
-| | MP-40, MP-50, MP60 | TDAI-1120, TDAI-2200, TDAI-3400 |
+| Function | MP-40, MP-50, MP60 | TDAI-1120, TDAI-2200, TDAI-3400 |
 |-|-|-|
 | Get focus positions list | ✅ | ✅ |
 | Get and set focus position | ✅ | ✅ |
@@ -36,18 +38,84 @@ The integration allows you to control an Lyngdorf processor using TCP sockets fr
 
 #### Sensor Entity
 
-| | MP-40, MP-50, MP60 | TDAI-1120, TDAI-2200, TDAI-3400 |
+| Senor | MP-40, MP-50, MP60 | TDAI-1120, TDAI-2200, TDAI-3400 |
 |-|-|-|
-| Get streaming source | ✅ | ✅ |
-| Get audio input | ✅ | ❌ |
-| Get audio information | ✅ | ✅ |
-| Get video input | ✅ | ❌ |
-| Get video information | ✅ | ❌ |
-| Get video output | ✅ | ❌ |
+| Streaming source | ✅ | ✅ |
+| Audio input | ✅ | ❌ |
+| Audio information | ✅ | ✅ |
+| Video input | ✅ | ❌ |
+| Video information | ✅ | ❌ |
+| Video output | ✅ | ❌ |
 
-## Known Limitations and Issues
+#### Remote Entity
 
-- Integration does not expose a remote entity.
+| Command | MP-40, MP-50, MP-60 | TDAI-1120, TDAI-2210, TDAI-3400 |
+|-|-|-|
+| VOLUME_UP | ✅ | ✅ |
+| VOLUME_DOWN | ✅ | ✅ |
+| MUTE_TOGGLE | ✅ | ✅ |
+| MUTE | ✅ | ✅ |
+| UNMUTE | ✅ | ✅ |
+| PLAY_PAUSE | ✅ | ✅ |
+| NEXT | ✅ | ✅ |
+| PREVIOUS | ✅ | ✅ |
+| SOURCE_BUTTON | ✅ | ❌ |
+| SOURCE_NEXT | ✅ | ✅ |
+| SOURCE_PREV | ✅ | ✅ |
+| VOICING_NEXT | ✅ | ✅ |
+| VOICING_PREV | ✅ | ✅ |
+| FOCUS_POSITION_NEXT | ✅ | ✅ |
+| FOCUS_POSITION_PREV | ✅ | ✅ |
+| CURSOR_UP | ✅ | ❌ |
+| CURSOR_DOWN | ✅ | ❌ |
+| CURSOR_LEFT | ✅ | ❌ |
+| CURSOR_RIGHT  ✅ | ❌ |
+| CURSOR_ENTER | ✅ | ❌ |
+| DIGIT_0 | ✅ | ❌ |
+| DIGIT_1 | ✅ | ❌ |
+| DIGIT_2 | ✅ | ❌ |
+| DIGIT_3 | ✅ | ❌ |
+| DIGIT_4 | ✅ | ❌ |
+| DIGIT_5 | ✅ | ❌ |
+| DIGIT_6 | ✅ | ❌ |
+| DIGIT_7 | ✅ | ❌ |
+| DIGIT_8 | ✅ | ❌ |
+| DIGIT_9 | ✅ | ❌ |
+| MENU | ✅ | ❌ |
+| INFO | ✅ | ❌ |
+| SETTINGS | ✅ | ❌ |
+| BACK | ✅ | ❌ |
+| AUDIO_MODE_BUTTON | ✅ | ❌ |
+| AUDIO_MODE_NEXT | ✅ | ❌ |
+| AUDIO_MODE_PREV | ✅ | ❌ |
+| LIPSYNC_UP | ✅ | ❌ |
+| LIPSYNC_DOWN | ✅ | ❌ |
+| DTS_DIALOG_UP | ✅ | ❌ |
+| DTS_DIALOG_DOWN | ✅ | ❌ |
+| BASS_TRIM_UP | ✅ | ❌ |
+| BASS_TRIM_DOWN | ✅ | ❌ |
+| TREBLE_TRIM_UP | ✅ | ❌ |
+| TREBLE_TRIM_DOWN | ✅ | ❌ |
+| CENTER_TRIM_UP | ✅ | ❌ |
+| CENTER_TRIM_DOWN | ✅ | ❌ |
+| HEIGHTS_TRIM_UP | ✅ | ❌ |
+| HEIGHTS_TRIM_DOWN | ✅ | ❌ |
+| LFE_TRIM_UP | ✅ | ❌ |
+| LFE_TRIM_DOWN | ✅ | ❌ |
+| SURROUNDS_TRIM_UP | ✅ | ❌ |
+| SURROUNDS_TRIM_DOWN | ✅ | ❌ |
+
+#### Services
+
+- Set Volume (dB)
+
+    Example:
+    ```yaml
+    service: media_player.set_volume_db
+    data:
+    entity_id: media_player.mp_60
+    volume_db: -40.0
+    ```
 
 {% if not installed %}
 
