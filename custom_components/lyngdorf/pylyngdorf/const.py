@@ -169,7 +169,7 @@ MP_STREAM_TYPES: Final = MappingProxyType(
         4: "UPnP",
         5: "Storage",
         6: "Roon ready",
-        7: "Unknown",
+        7: "TIDAL",
         8: "airable",
         9: "Artist Connection",
         10: "Qobuz",
@@ -188,8 +188,9 @@ TDAI1120_STREAM_TYPES: Final = MappingProxyType(
         6: "Roon Ready",
         7: "Bluetooth",
         8: "GoogleCast",
-        9: "airable",
-        10: "Qobuz",
+        9: "TIDAL",
+        10: "airable",
+        11: "Qobuz",
     }
 )
 

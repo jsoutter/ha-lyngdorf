@@ -72,7 +72,7 @@ class DeviceCommands:
 class DeviceProtocol:
     commands: DeviceCommands
     queries: Mapping[LyngdorfQuery, str]
-    streaming_types: Mapping[int, str | None] = MappingProxyType({})
+    stream_types: Mapping[int, str | None] = MappingProxyType({})
     multichannel: bool = False
     audio_inputs: Mapping[int, str | None] = MappingProxyType({})
     video_inputs: Mapping[int, str | None] = MappingProxyType({})
