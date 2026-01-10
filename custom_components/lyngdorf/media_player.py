@@ -14,9 +14,11 @@ from homeassistant.components.media_player.const import (
     MediaPlayerEntityFeature,
     MediaPlayerState,
 )
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_platform
 
-from pylyngdorf.const import MIN_VOLUME_DB
+
+from .pylyngdorf.const import MIN_VOLUME_DB
 
 
 from .entity import LyngdorfCoordinator, LyngdorfEntity
@@ -64,7 +66,7 @@ async def async_setup_entry(
     platform = entity_platform.async_get_current_platform()
     platform.async_register_entity_service(
         SERVICE_SET_VOLUME_DB,
-        vol.Schema({vol.Required("volume_db"): vol.Coerce(float)}),
+        cv.make_entity_service_schema({vol.Required("volume"): vol.Coerce(float)}),
         "async_set_volume_db",
     )
 

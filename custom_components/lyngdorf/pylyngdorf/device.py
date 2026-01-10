@@ -275,13 +275,11 @@ class LyngdorfDevice:
     @notify_callback(LyngdorfQuery.STREAM_TYPE, lambda self: self._stream_type)
     async def _async_stream_type_callback(self, event: str, params: list[str]) -> None:
         """Handle a stream type change event."""
-        if params:
-            description = lookup_description(
-                params[0], self._api.device_protocol.stream_types
-            )
-            self._stream_type = description if description is not None else params[0]
-        else:
-            self._stream_type = None
+        self._stream_type = (
+            lookup_description(params[0], self._api.device_protocol.stream_types)
+            if params
+            else None
+        )
 
     async def _async_voicing_count_callback(
         self, event: str, params: list[str]
@@ -347,13 +345,11 @@ class LyngdorfDevice:
     @notify_callback(LyngdorfQuery.AUDIO_INPUT, lambda self: self._audio_input)
     async def _async_audio_input_callback(self, event: str, params: list[str]) -> None:
         """Handle a audio input change event."""
-        if params:
-            description = lookup_description(
-                params[0], self._api.device_protocol.audio_inputs
-            )
-            self._audio_input = description if description is not None else params[0]
-        else:
-            self._audio_input = None
+        self._audio_input = (
+            lookup_description(params[0], self._api.device_protocol.audio_inputs)
+            if params
+            else None
+        )
 
     @notify_callback(LyngdorfQuery.AUDIO_TYPE, lambda self: self._audio_type)
     async def _async_audio_type_callback(self, event: str, params: list[str]) -> None:
@@ -363,13 +359,11 @@ class LyngdorfDevice:
     @notify_callback(LyngdorfQuery.VIDEO_INPUT, lambda self: self._video_input)
     async def _async_video_input_callback(self, event: str, params: list[str]) -> None:
         """Handle a video input event."""
-        if params:
-            description = lookup_description(
-                params[0], self._api.device_protocol.video_inputs
-            )
-            self._video_input = description if description is not None else params[0]
-        else:
-            self._video_input = None
+        self._video_input = (
+            lookup_description(params[0], self._api.device_protocol.video_inputs)
+            if params
+            else None
+        )
 
     @notify_callback(LyngdorfQuery.VIDEO_TYPE, lambda self: self._video_type)
     async def _async_video_type_callback(self, event: str, params: list[str]) -> None:
@@ -379,13 +373,11 @@ class LyngdorfDevice:
     @notify_callback(LyngdorfQuery.VIDEO_OUTPUT, lambda self: self._video_output)
     async def _async_video_output_callback(self, event: str, params: list[str]) -> None:
         """Handle a video output event."""
-        if params:
-            description = lookup_description(
-                params[0], self._api.device_protocol.video_outputs
-            )
-            self._video_output = description if description is not None else params[0]
-        else:
-            self._video_output = None
+        self._video_output = (
+            lookup_description(params[0], self._api.device_protocol.video_outputs)
+            if params
+            else None
+        )
 
     @notify_callback(LyngdorfQuery.LIPSYNC_RANGE)
     async def _async_lipsync_range_callback(

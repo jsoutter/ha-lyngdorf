@@ -109,12 +109,15 @@ The integration allows you to control an Lyngdorf processor using TCP sockets fr
 
 - Set Volume (dB)
 
-    Example:
+    Example for button tap action:
     ```yaml
-    service: media_player.set_volume_db
+    tap_action:
+    action: perform-action
+    perform_action: lyngdorf.set_volume_db
+    target:
+        entity_id: media_player.mp_60
     data:
-    entity_id: media_player.mp_60
-    volume_db: -40.0
+        volume: -40
     ```
 
 {% if not installed %}
