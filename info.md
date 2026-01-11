@@ -27,6 +27,13 @@ The integration allows you to control an Lyngdorf processor using TCP sockets fr
 | Get and set sound mode | ✅ | ❌ |
 | Attribute for volume in native format (dB) | ✅ | ✅ |
 
+| Attribute Name | Description |
+|----------------|-------------|
+| **volume_db** | Current volume in decibels |
+| **volume_min_db** | Minimum volume in decibels |
+| **volume_max_db** | Maximum volume in decibels |
+| **volume_native** | Current volume in decibels *(will be removed in a future release)* |
+
 #### Select Entity
 
 | Function | MP-40, MP-50, MP60 | TDAI-1120, TDAI-2200, TDAI-3400 |
