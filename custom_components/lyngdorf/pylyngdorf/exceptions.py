@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Module implements the exception classes for Lyngdorf processors.
+Module implements the exception classes for Lyngdorf devices.
 
 :license: MIT, see LICENSE for more details.
 """

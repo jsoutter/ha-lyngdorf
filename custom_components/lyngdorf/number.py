@@ -23,19 +23,19 @@ if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
     from .pylyngdorf.lyngdorf import Lyngdorf
 
-_TRIM_MIN_BASS_TREBLE = -12.0
-_TRIM_MAX_BASS_TREBLE = 12.0
-_TRIM_MIN_CHANNEL = -10.0
-_TRIM_MAX_CHANNEL = 10.0
-_TRIM_STEP = 0.1
+TRIM_MIN_BASS_TREBLE = -12.0
+TRIM_MAX_BASS_TREBLE = 12.0
+TRIM_MIN_CHANNEL = -10.0
+TRIM_MAX_CHANNEL = 10.0
+TRIM_STEP = 0.1
 
-_LIPSYNC: Final = "lipsync"
-_BASS_TRIM: Final = "bass_trim"
-_TREBLE_TRIM: Final = "treble_trim"
-_CENTER_TRIM: Final = "center_trim"
-_HEIGHTS_TRIM: Final = "heights_trim"
-_LFE_TRIM: Final = "lfe_trim"
-_SURROUNDS_TRIM: Final = "surrounds_trim"
+LIPSYNC: Final = "lipsync"
+BASS_TRIM: Final = "bass_trim"
+TREBLE_TRIM: Final = "treble_trim"
+CENTER_TRIM: Final = "center_trim"
+HEIGHTS_TRIM: Final = "heights_trim"
+LFE_TRIM: Final = "lfe_trim"
+SURROUNDS_TRIM: Final = "surrounds_trim"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -45,14 +45,14 @@ class LyngdorfNumberDescription(NumberEntityDescription):
     native_min_value_fn: Callable[[Lyngdorf], int | float]
     native_max_value_fn: Callable[[Lyngdorf], int | float]
 
-    value_fn: Callable[[Lyngdorf], float | None]
-    set_value_fn: Callable[[Lyngdorf, float], Awaitable[None]]
+    value_fn: Callable[[Lyngdorf], float | int | None]
+    set_value_fn: Callable[[Lyngdorf, float | int], Awaitable[None]]
 
 
 SELECT_TYPES: tuple[LyngdorfNumberDescription, ...] = (
     LyngdorfNumberDescription(
-        key=_LIPSYNC,
-        translation_key=_LIPSYNC,
+        key=LIPSYNC,
+        translation_key=LIPSYNC,
         entity_category=EntityCategory.CONFIG,
         device_class=NumberDeviceClass.DURATION,
         native_min_value_fn=lambda receiver: receiver.min_lipsync,
@@ -60,76 +60,76 @@ SELECT_TYPES: tuple[LyngdorfNumberDescription, ...] = (
         native_step=1,
         native_unit_of_measurement=UnitOfTime.MILLISECONDS,
         value_fn=lambda receiver: receiver.lipsync,
-        set_value_fn=lambda receiver, value: receiver.async_set_lipsync(value),
+        set_value_fn=lambda receiver, value: receiver.async_set_lipsync(int(value)),
     ),
     LyngdorfNumberDescription(
-        key=_BASS_TRIM,
-        translation_key=_BASS_TRIM,
+        key=BASS_TRIM,
+        translation_key=BASS_TRIM,
         entity_category=EntityCategory.CONFIG,
         device_class=NumberDeviceClass.SOUND_PRESSURE,
-        native_min_value_fn=lambda _: _TRIM_MIN_BASS_TREBLE,
-        native_max_value_fn=lambda _: _TRIM_MAX_BASS_TREBLE,
-        native_step=_TRIM_STEP,
+        native_min_value_fn=lambda _: TRIM_MIN_BASS_TREBLE,
+        native_max_value_fn=lambda _: TRIM_MAX_BASS_TREBLE,
+        native_step=TRIM_STEP,
         native_unit_of_measurement=UnitOfSoundPressure.DECIBEL,
         value_fn=lambda receiver: receiver._bass_trim,
         set_value_fn=lambda receiver, value: receiver.async_set_bass_trim(value),
     ),
     LyngdorfNumberDescription(
-        key=_TREBLE_TRIM,
-        translation_key=_TREBLE_TRIM,
+        key=TREBLE_TRIM,
+        translation_key=TREBLE_TRIM,
         entity_category=EntityCategory.CONFIG,
         device_class=NumberDeviceClass.SOUND_PRESSURE,
-        native_min_value_fn=lambda _: _TRIM_MIN_BASS_TREBLE,
-        native_max_value_fn=lambda _: _TRIM_MAX_BASS_TREBLE,
-        native_step=_TRIM_STEP,
+        native_min_value_fn=lambda _: TRIM_MIN_BASS_TREBLE,
+        native_max_value_fn=lambda _: TRIM_MAX_BASS_TREBLE,
+        native_step=TRIM_STEP,
         native_unit_of_measurement=UnitOfSoundPressure.DECIBEL,
         value_fn=lambda receiver: receiver.treble_trim,
         set_value_fn=lambda receiver, value: receiver.async_set_treble_trim(value),
     ),
     LyngdorfNumberDescription(
-        key=_CENTER_TRIM,
-        translation_key=_CENTER_TRIM,
+        key=CENTER_TRIM,
+        translation_key=CENTER_TRIM,
         entity_category=EntityCategory.CONFIG,
         device_class=NumberDeviceClass.SOUND_PRESSURE,
-        native_min_value_fn=lambda _: _TRIM_MIN_CHANNEL,
-        native_max_value_fn=lambda _: _TRIM_MAX_CHANNEL,
-        native_step=_TRIM_STEP,
+        native_min_value_fn=lambda _: TRIM_MIN_CHANNEL,
+        native_max_value_fn=lambda _: TRIM_MAX_CHANNEL,
+        native_step=TRIM_STEP,
         native_unit_of_measurement=UnitOfSoundPressure.DECIBEL,
         value_fn=lambda receiver: receiver.center_trim,
         set_value_fn=lambda receiver, value: receiver.async_set_center_trim(value),
     ),
     LyngdorfNumberDescription(
-        key=_HEIGHTS_TRIM,
-        translation_key=_HEIGHTS_TRIM,
+        key=HEIGHTS_TRIM,
+        translation_key=HEIGHTS_TRIM,
         entity_category=EntityCategory.CONFIG,
         device_class=NumberDeviceClass.SOUND_PRESSURE,
-        native_min_value_fn=lambda _: _TRIM_MIN_CHANNEL,
-        native_max_value_fn=lambda _: _TRIM_MAX_CHANNEL,
-        native_step=_TRIM_STEP,
+        native_min_value_fn=lambda _: TRIM_MIN_CHANNEL,
+        native_max_value_fn=lambda _: TRIM_MAX_CHANNEL,
+        native_step=TRIM_STEP,
         native_unit_of_measurement=UnitOfSoundPressure.DECIBEL,
         value_fn=lambda receiver: receiver.heights_trim,
         set_value_fn=lambda receiver, value: receiver.async_set_heights_trim(value),
     ),
     LyngdorfNumberDescription(
-        key=_LFE_TRIM,
-        translation_key=_LFE_TRIM,
+        key=LFE_TRIM,
+        translation_key=LFE_TRIM,
         entity_category=EntityCategory.CONFIG,
         device_class=NumberDeviceClass.SOUND_PRESSURE,
-        native_min_value_fn=lambda _: _TRIM_MIN_CHANNEL,
-        native_max_value_fn=lambda _: _TRIM_MAX_CHANNEL,
-        native_step=_TRIM_STEP,
+        native_min_value_fn=lambda _: TRIM_MIN_CHANNEL,
+        native_max_value_fn=lambda _: TRIM_MAX_CHANNEL,
+        native_step=TRIM_STEP,
         native_unit_of_measurement=UnitOfSoundPressure.DECIBEL,
         value_fn=lambda receiver: receiver.lfe_trim,
         set_value_fn=lambda receiver, value: receiver.async_set_lfe_trim(value),
     ),
     LyngdorfNumberDescription(
-        key=_SURROUNDS_TRIM,
-        translation_key=_SURROUNDS_TRIM,
+        key=SURROUNDS_TRIM,
+        translation_key=SURROUNDS_TRIM,
         entity_category=EntityCategory.CONFIG,
         device_class=NumberDeviceClass.SOUND_PRESSURE,
-        native_min_value_fn=lambda _: _TRIM_MIN_CHANNEL,
-        native_max_value_fn=lambda _: _TRIM_MAX_CHANNEL,
-        native_step=_TRIM_STEP,
+        native_min_value_fn=lambda _: TRIM_MIN_CHANNEL,
+        native_max_value_fn=lambda _: TRIM_MAX_CHANNEL,
+        native_step=TRIM_STEP,
         native_unit_of_measurement=UnitOfSoundPressure.DECIBEL,
         value_fn=lambda receiver: receiver.surrounds_trim,
         set_value_fn=lambda receiver, value: receiver.async_set_surrounds_trim(value),
@@ -189,4 +189,4 @@ class LyngdorfNumber(LyngdorfEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
-        await self.entity_description.set_value_fn(self._receiver, int(value))
+        await self.entity_description.set_value_fn(self._receiver, value)

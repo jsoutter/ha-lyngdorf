@@ -18,8 +18,8 @@ if TYPE_CHECKING:
     from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
     from .pylyngdorf.lyngdorf import Lyngdorf
 
-_FOCUS_POSITION: Final = "focus_position"
-_VOICING: Final = "voicing"
+FOCUS_POSITION: Final = "focus_position"
+VOICING: Final = "voicing"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -33,15 +33,15 @@ class LyngdorfSelectDescription(SelectEntityDescription):
 
 SELECT_TYPES: tuple[LyngdorfSelectDescription, ...] = (
     LyngdorfSelectDescription(
-        key=_FOCUS_POSITION,
-        translation_key=_FOCUS_POSITION,
+        key=FOCUS_POSITION,
+        translation_key=FOCUS_POSITION,
         value_fn=lambda receiver: receiver.focus_position,
         options_fn=lambda receiver: receiver.focus_positions,
         set_value_fn=lambda receiver, value: receiver.async_set_focus_position(value),
     ),
     LyngdorfSelectDescription(
-        key=_VOICING,
-        translation_key=_VOICING,
+        key=VOICING,
+        translation_key=VOICING,
         value_fn=lambda receiver: receiver.voicing,
         options_fn=lambda receiver: receiver.voicings,
         set_value_fn=lambda receiver, value: receiver.async_set_voicing(value),

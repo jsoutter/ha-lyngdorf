@@ -1,0 +1,13 @@
+set_volume_db:
+  name: Set Volume (dB)
+  description: Set the volume in decibels using the native API.
+  fields:
+    volume:
+      name: Volume (dB)
+      description: Desired volume in decibels
+      required: true
+      example: -40
+      selector:
+        number:
+          min: -99.9
+          max: 20

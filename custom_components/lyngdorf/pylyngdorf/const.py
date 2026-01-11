@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 """
-Module implements constants for Lyngdorf processors.
+Module implements constants for Lyngdorf devices.
 
 :license: MIT, see LICENSE for more details.
 """
 
-import re
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from enum import Enum, auto
 from types import MappingProxyType
-from typing import Any, Final
+from typing import Final
 
 import attr
-
-from .exceptions import LyngdorfUnsupportedError
 
 LYNGDORF_ATTR_SETATTR: list[Callable[..., object]] = [
     attr.setters.validate,
@@ -31,6 +28,7 @@ RECONNECT_MAX_WAIT = 30.0
 
 COMMAND_PREFIX = "!"
 ECHO_PREFIX = "#"
+MIN_MESSAGE_LENGTH = 3
 
 MIN_VOLUME_DB = -99.9
 DEFAULT_MAX_VOLUME_DB = 12.0
@@ -41,8 +39,9 @@ TRIM_RANGE_BASS_TREBLE = 12.0
 TRIM_RANGE_CHANNEL = 10.0
 
 
-# Supported devices
 class DeviceModel(str, Enum):
+    """Supported device models."""
+
     MP40 = "MP-40"
     MP50 = "MP-50"
     MP60 = "MP-60"
@@ -51,34 +50,83 @@ class DeviceModel(str, Enum):
     TDAI3400 = "TDAI-3400"
 
 
-# Commands
-class LyngdorfCommands(Enum):
+class LyngdorfCommand(Enum):
+    """Lyngdorf commands."""
+
     VERBOSE = auto()
     POWER_ON = auto()
     POWER_OFF = auto()
     VOLUME = auto()
     VOLUME_UP = auto()
     VOLUME_DOWN = auto()
+    MUTE = auto()
     MUTE_ON = auto()
     MUTE_OFF = auto()
+    SOURCE_BUTTON = auto()
     SOURCE = auto()
+    SOURCE_NEXT = auto()
+    SOURCE_PREV = auto()
     VOICING = auto()
+    VOICING_NEXT = auto()
+    VOICING_PREV = auto()
     FOCUS_POSITION = auto()
+    FOCUS_POSITION_NEXT = auto()
+    FOCUS_POSITION_PREV = auto()
+    AUDIO_MODE_BUTTON = auto()
     AUDIO_MODE = auto()
+    AUDIO_MODE_NEXT = auto()
+    AUDIO_MODE_PREV = auto()
     LIPSYNC = auto()
+    LIPSYNC_UP = auto()
+    LIPSYNC_DOWN = auto()
+    DTS_DIALOG_UP = auto()
+    DTS_DIALOG_DOWN = auto()
     PLAY = auto()
-    PREVIOUS = auto()
     NEXT = auto()
-    TRIM_BASS = auto()
-    TRIM_TREBLE = auto()
-    TRIM_CENTER = auto()
-    TRIM_HEIGHTS = auto()
-    TRIM_LFE = auto()
-    TRIM_SURROUNDS = auto()
+    PREVIOUS = auto()
+    BASS_TRIM = auto()
+    BASS_TRIM_UP = auto()
+    BASS_TRIM_DOWN = auto()
+    TREBLE_TRIM = auto()
+    TREBLE_TRIM_UP = auto()
+    TREBLE_TRIM_DOWN = auto()
+    CENTER_TRIM = auto()
+    CENTER_TRIM_UP = auto()
+    CENTER_TRIM_DOWN = auto()
+    HEIGHTS_TRIM = auto()
+    HEIGHTS_TRIM_UP = auto()
+    HEIGHTS_TRIM_DOWN = auto()
+    LFE_TRIM = auto()
+    LFE_TRIM_UP = auto()
+    LFE_TRIM_DOWN = auto()
+    SURROUNDS_TRIM = auto()
+    SURROUNDS_TRIM_UP = auto()
+    SURROUNDS_TRIM_DOWN = auto()
+    # Navigation
+    CURSOR_UP = auto()
+    CURSOR_DOWN = auto()
+    CURSOR_LEFT = auto()
+    CURSOR_RIGHT = auto()
+    CURSOR_ENTER = auto()
+    DIGIT_0 = auto()
+    DIGIT_1 = auto()
+    DIGIT_2 = auto()
+    DIGIT_3 = auto()
+    DIGIT_4 = auto()
+    DIGIT_5 = auto()
+    DIGIT_6 = auto()
+    DIGIT_7 = auto()
+    DIGIT_8 = auto()
+    DIGIT_9 = auto()
+    MENU = auto()
+    INFO = auto()
+    SETTINGS = auto()
+    BACK = auto()
 
 
-# Queries
-class LyngdorfQueries(Enum):
+class LyngdorfQuery(Enum):
+    """Lyngdorf queries."""
+
     VERBOSE = auto()
     DEVICE = auto()
     POWER = auto()
@@ -89,7 +137,7 @@ class LyngdorfQueries(Enum):
     STREAM_TYPE = auto()
     VOICING_LIST = auto()
     VOICING = auto()
-    FOCUS_POSITON_LIST = auto()
+    FOCUS_POSITION_LIST = auto()
     FOCUS_POSITION = auto()
     AUDIO_MODE_LIST = auto()
     AUDIO_MODE = auto()
@@ -104,168 +152,12 @@ class LyngdorfQueries(Enum):
     DTS_DIALOG_AVAILABLE = auto()
     DTS_DIALOG = auto()
     LOUDNESS = auto()
-    TRIM_BASS = auto()
-    TRIM_TREBLE = auto()
-    TRIM_CENTER = auto()
-    TRIM_HEIGHTS = auto()
-    TRIM_LFE = auto()
-    TRIM_SURROUNDS = auto()
-
-
-@attr.dataclass(frozen=True)
-class CommandDefinition:
-    template: str
-    parameter: bool = False
-
-
-class DeviceCommands:
-    def __init__(self, commands: dict[LyngdorfCommands, CommandDefinition]):
-        self.commands = commands
-
-    def get_command(self, cmd: LyngdorfCommands, *args: Any) -> str:
-        if cmd not in self.commands:
-            raise ValueError(f"Command {cmd.name} not supported by this device.")
-
-        definition = self.commands[cmd]
-
-        if args:
-            return definition.template.format(*args)
-
-        if definition.parameter:
-            raise ValueError(f"Command {cmd.name} requires exactly one argument.")
-
-        # Strip placeholders like "({:d})" or "({:.0f})"
-        return re.sub(r"\([^)]*{[^}]*}\)", "", definition.template).strip()
-
-
-@attr.dataclass(frozen=True)
-class DeviceProtocol:
-    commands: DeviceCommands
-    queries: Mapping[LyngdorfQueries, str]
-    streaming_types: Mapping[int, str | None] = MappingProxyType({})
-    multichannel: bool = False
-    audio_inputs: Mapping[int, str | None] = MappingProxyType({})
-    video_inputs: Mapping[int, str | None] = MappingProxyType({})
-    video_outputs: Mapping[int, str | None] = MappingProxyType({})
-
-
-COMMON_COMMANDS: Final = DeviceCommands(
-    {
-        LyngdorfCommands.VERBOSE: CommandDefinition("VERB({:d})", parameter=True),
-        LyngdorfCommands.VOLUME: CommandDefinition("VOL({:.0f})", parameter=True),
-        LyngdorfCommands.PLAY: CommandDefinition("PLAY"),
-        LyngdorfCommands.PREVIOUS: CommandDefinition("PREV"),
-        LyngdorfCommands.NEXT: CommandDefinition("NEXT"),
-    }
-)
-
-MP_COMMANDS: Final = DeviceCommands(
-    {
-        **COMMON_COMMANDS.commands,
-        LyngdorfCommands.POWER_ON: CommandDefinition("POWERONMAIN"),
-        LyngdorfCommands.POWER_OFF: CommandDefinition("POWEROFFMAIN"),
-        LyngdorfCommands.VOLUME_UP: CommandDefinition("VOL+"),
-        LyngdorfCommands.VOLUME_DOWN: CommandDefinition("VOL-"),
-        LyngdorfCommands.MUTE_ON: CommandDefinition("MUTEON"),
-        LyngdorfCommands.MUTE_OFF: CommandDefinition("MUTEOFF"),
-        LyngdorfCommands.SOURCE: CommandDefinition("SRC({:d})", parameter=True),
-        LyngdorfCommands.VOICING: CommandDefinition("RPVOI({:d})", parameter=True),
-        LyngdorfCommands.FOCUS_POSITION: CommandDefinition(
-            "RPFOC({:d})", parameter=True
-        ),
-        LyngdorfCommands.AUDIO_MODE: CommandDefinition("AUDMODE({:d})", parameter=True),
-        LyngdorfCommands.LIPSYNC: CommandDefinition("LIPSYNC({:d})", parameter=True),
-        LyngdorfCommands.TRIM_BASS: CommandDefinition("TRIMBASS({:d})", parameter=True),
-        LyngdorfCommands.TRIM_TREBLE: CommandDefinition(
-            "TRIMTREB({:d})", parameter=True
-        ),
-        LyngdorfCommands.TRIM_CENTER: CommandDefinition(
-            "TRIMCENTER({:d})", parameter=True
-        ),
-        LyngdorfCommands.TRIM_HEIGHTS: CommandDefinition(
-            "TRIMHEIGHT({:d})", parameter=True
-        ),
-        LyngdorfCommands.TRIM_LFE: CommandDefinition("TRIMLFE({:d})", parameter=True),
-        LyngdorfCommands.TRIM_SURROUNDS: CommandDefinition(
-            "TRIMSURRS({:d})", parameter=True
-        ),
-    }
-)
-
-
-TDAI_COMMANDS: Final = DeviceCommands(
-    {
-        **COMMON_COMMANDS.commands,
-        LyngdorfCommands.POWER_ON: CommandDefinition("ON"),
-        LyngdorfCommands.POWER_OFF: CommandDefinition("OFF"),
-        LyngdorfCommands.VOLUME_UP: CommandDefinition("VOLUP"),
-        LyngdorfCommands.VOLUME_DOWN: CommandDefinition("VOLDN"),
-        LyngdorfCommands.MUTE_ON: CommandDefinition("MUTEON"),
-        LyngdorfCommands.MUTE_OFF: CommandDefinition("MUTEOFF"),
-        LyngdorfCommands.SOURCE: CommandDefinition("SRC({:d})", parameter=True),
-        LyngdorfCommands.VOICING: CommandDefinition("VOI({:d})", parameter=True),
-        LyngdorfCommands.FOCUS_POSITION: CommandDefinition("RP({:d})", parameter=True),
-    }
-)
-
-COMMON_QUERIES: Final[Mapping[LyngdorfQueries, str]] = MappingProxyType(
-    {
-        LyngdorfQueries.VERBOSE: "VERB?",
-        LyngdorfQueries.DEVICE: "DEVICE?",
-    }
-)
-
-MP_QUERIES: Final[Mapping[LyngdorfQueries, str]] = MappingProxyType(
-    {
-        **COMMON_QUERIES,
-        LyngdorfQueries.POWER: "POWER?",
-        LyngdorfQueries.MAX_VOLUME: "MAXVOL?",
-        LyngdorfQueries.VOLUME: "VOL?",
-        LyngdorfQueries.MUTE: "MUTE?",
-        LyngdorfQueries.SOURCE_LIST: "SRCS?",
-        LyngdorfQueries.SOURCE: "SRC?",
-        LyngdorfQueries.STREAM_TYPE: "STREAMTYPE?",
-        LyngdorfQueries.VOICING_LIST: "RPVOIS?",
-        LyngdorfQueries.VOICING: "RPVOI?",
-        LyngdorfQueries.FOCUS_POSITON_LIST: "RPFOCS?",
-        LyngdorfQueries.FOCUS_POSITION: "RPFOC?",
-        LyngdorfQueries.AUDIO_MODE_LIST: "AUDMODEL?",
-        LyngdorfQueries.AUDIO_MODE: "AUDMODE?",
-        LyngdorfQueries.AUDIO_INPUT: "AUDIN?",
-        LyngdorfQueries.AUDIO_TYPE: "AUDTYPE?",
-        LyngdorfQueries.VIDEO_INPUT: "VIDIN?",
-        LyngdorfQueries.VIDEO_TYPE: "VIDTYPE?",
-        LyngdorfQueries.VIDEO_OUTPUT: "HDMIMAINOUT?",
-        LyngdorfQueries.LIPSYNC_RANGE: "LIPSYNCRANGE?",
-        LyngdorfQueries.LIPSYNC: "LIPSYNC?",
-        LyngdorfQueries.DTS_DIALOG_AVAILABLE: "DTSDIALOGAVAILABLE?",
-        LyngdorfQueries.DTS_DIALOG: "DTSDIALOG?",
-        LyngdorfQueries.LOUDNESS: "LOUDNESS?",
-        LyngdorfQueries.TRIM_BASS: "TRIMBASS?",
-        LyngdorfQueries.TRIM_TREBLE: "TRIMTREB?",
-        LyngdorfQueries.TRIM_CENTER: "TRIMCENTER?",
-        LyngdorfQueries.TRIM_HEIGHTS: "TRIMHEIGHT?",
-        LyngdorfQueries.TRIM_LFE: "TRIMLFE?",
-        LyngdorfQueries.TRIM_SURROUNDS: "TRIMSURRS?",
-    }
-)
-
-TDAI_QUERIES: Final[Mapping[LyngdorfQueries, str]] = MappingProxyType(
-    {
-        **COMMON_QUERIES,
-        LyngdorfQueries.POWER: "PWR?",
-        LyngdorfQueries.VOLUME: "VOL?",
-        LyngdorfQueries.MUTE: "MUTE?",
-        LyngdorfQueries.SOURCE_LIST: "SRCLIST?",
-        LyngdorfQueries.SOURCE: "SRCNAME?",
-        LyngdorfQueries.STREAM_TYPE: "STREAMTYPE?",
-        LyngdorfQueries.AUDIO_TYPE: "AUDIOSTATUS?",
-        LyngdorfQueries.VOICING_LIST: "VOILIST?",
-        LyngdorfQueries.VOICING: "VOINAME?",
-        LyngdorfQueries.FOCUS_POSITON_LIST: "RPLIST?",
-        LyngdorfQueries.FOCUS_POSITION: "RPNAME?",
-    }
-)
+    BASS_TRIM = auto()
+    TREBLE_TRIM = auto()
+    CENTER_TRIM = auto()
+    HEIGHTS_TRIM = auto()
+    LFE_TRIM = auto()
+    SURROUNDS_TRIM = auto()
 
 
 MP_STREAM_TYPES: Final = MappingProxyType(
@@ -277,7 +169,7 @@ MP_STREAM_TYPES: Final = MappingProxyType(
         4: "UPnP",
         5: "Storage",
         6: "Roon ready",
-        7: "Unknown",
+        7: "TIDAL",
         8: "airable",
         9: "Artist Connection",
         10: "Qobuz",
@@ -296,8 +188,9 @@ TDAI1120_STREAM_TYPES: Final = MappingProxyType(
         6: "Roon Ready",
         7: "Bluetooth",
         8: "GoogleCast",
-        9: "airable",
-        10: "Qobuz",
+        9: "TIDAL",
+        10: "airable",
+        11: "Qobuz",
     }
 )
 
@@ -374,46 +267,3 @@ MP_VIDEO_OUTPUTS: Final = MappingProxyType(
         3: "HDBT Out",
     }
 )
-
-MP_MODELS: Final = [DeviceModel.MP40, DeviceModel.MP50, DeviceModel.MP60]
-TDAI_MODELS: Final = (DeviceModel.TDAI1120, DeviceModel.TDAI2210, DeviceModel.TDAI3400)
-
-TDAI_STREAM_TYPES: Final = {
-    DeviceModel.TDAI1120: TDAI1120_STREAM_TYPES,
-    DeviceModel.TDAI2210: TDAI2210_STREAM_TYPES,
-    DeviceModel.TDAI3400: TDAI3400_STREAM_TYPES,
-}
-
-DEFAULT_PROTOCOL = DeviceProtocol(COMMON_COMMANDS, COMMON_QUERIES)
-
-DEVICE_PROTOCOLS: dict[DeviceModel, DeviceProtocol] = {
-    **{
-        model: DeviceProtocol(
-            MP_COMMANDS,
-            MP_QUERIES,
-            MP_STREAM_TYPES,
-            True,
-            MP_AUDIO_INPUTS,
-            MP_VIDEO_INPUTS,
-            MP_VIDEO_OUTPUTS,
-        )
-        for model in MP_MODELS
-    },
-    **{
-        model: DeviceProtocol(
-            TDAI_COMMANDS,
-            TDAI_QUERIES,
-            TDAI_STREAM_TYPES[model],
-        )
-        for model in TDAI_MODELS
-    },
-}
-
-
-def get_device_protocol(model: DeviceModel) -> DeviceProtocol:
-    try:
-        return DEVICE_PROTOCOLS[model]
-    except KeyError:
-        raise LyngdorfUnsupportedError(
-            f"Unsupported device model: {model.value}"
-        ) from None

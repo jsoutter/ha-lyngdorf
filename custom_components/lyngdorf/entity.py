@@ -17,7 +17,7 @@ from homeassistant.helpers.update_coordinator import (
 
 from .const import DOMAIN as LYNGDORF_DOMAIN
 from .const import NAME as LYNGDORF_NAME
-from .pylyngdorf.const import DeviceModel, DEFAULT_PORT
+from .pylyngdorf.const import DeviceModel, DEFAULT_PORT, LyngdorfQuery
 from .pylyngdorf.exceptions import LyngdorfNetworkError, LyngdorfTimoutError
 from .pylyngdorf.lyngdorf import Lyngdorf
 
@@ -68,7 +68,7 @@ class LyngdorfCoordinator(DataUpdateCoordinator[None]):
         """No polling needed."""
         return self.data
 
-    def _notify_callback(self) -> None:
+    def _notify_callback(self, event: LyngdorfQuery) -> None:
         """Handle a notification."""
         self.async_update_listeners()
 

@@ -1,15 +1,16 @@
 """
-Module implements the utilities to Lyngdorf processors.
+Module implements the utilities to Lyngdorf devices.
 
 :license: MIT, see LICENSE for more details.
 """
 
-import attr
 import math
-from typing import Final, Mapping
+from collections.abc import Mapping
+from typing import Final
+
+import attr
 
 from .const import MIN_VOLUME_DB
-
 
 _MIN_VOLUME_LINEAR: Final = 0.02
 _MAX_VOLUME_LINEAR: Final = 1.0
@@ -24,7 +25,7 @@ def compute_alpha(
     min_linear: float = _MIN_VOLUME_LINEAR,
     max_linear: float = _MAX_VOLUME_LINEAR,
     min_db: float = MIN_VOLUME_DB,
-):
+) -> float:
     """
     Automatically compute the alpha based only on max_db.
     The reference dB is chosen as a fraction 'f' of the dB range.
@@ -147,7 +148,7 @@ def convert_volume(value: float | str) -> float | None:
 
 
 def lookup_description(key_str: str, lookup: Mapping[int, str | None]) -> str | None:
-    """Convert the key to int and return value from the lookup dict, or None if invalid."""
+    """Convert the key to int and return value from the lookup dict, or None."""
     try:
         key = int(key_str)
     except ValueError:

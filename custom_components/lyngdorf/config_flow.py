@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, cast
 
@@ -142,7 +141,6 @@ class LyngdorfConfigFlow(ConfigFlow, domain=DOMAIN):
             receiver: Lyngdorf = Lyngdorf.create(self.host, port)
 
             await receiver.async_connect()
-            await asyncio.sleep(0.1)
             await receiver.async_disconnect()
 
             if not (model := receiver.model):
