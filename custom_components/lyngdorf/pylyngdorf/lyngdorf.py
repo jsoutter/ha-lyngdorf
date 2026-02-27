@@ -9,7 +9,6 @@ from typing import Any, TypeVar
 
 import attr
 
-from .config import DEVICE_PROTOCOLS
 from .const import (
     DEFAULT_PORT,
     MIN_VOLUME_DB,
@@ -19,6 +18,7 @@ from .const import (
     LyngdorfCommand,
 )
 from .device import LyngdorfDevice
+from .music_player import MediaData
 
 T = TypeVar("T", bound="Lyngdorf")
 
@@ -35,11 +35,6 @@ def validate_trim(trim: float, range_: float) -> None:
 class Lyngdorf(LyngdorfDevice):
     """Implements a class with device information."""
 
-    _host: str = attr.field(converter=str)
-    _port: int = attr.field(converter=int)
-    _timeout: float = attr.field(converter=float)
-    _device_model: DeviceModel | None = attr.field(default=None)
-
     def __new__(
         cls: type[T],
     ) -> T:
@@ -54,18 +49,19 @@ class Lyngdorf(LyngdorfDevice):
         device_model: DeviceModel | None = None,
     ) -> T:
         instance = object.__new__(cls)
-        cls.__init__(instance, host, port, timeout, device_model)
+        cls.__init__(
+            instance,
+            host=host,
+            port=port,
+            timeout=timeout,
+            device_model=device_model,
+        )
+
         return instance
 
     def __attrs_post_init__(self) -> None:
         """Initialise attributes."""
         super().__attrs_post_init__()
-        self._api.host = self._host
-        self._api.port = self._port
-        self._api.timeout = self._timeout
-
-        if self._device_model is not None and self._device_model in DEVICE_PROTOCOLS:
-            self._api.device_protocol = DEVICE_PROTOCOLS[self._device_model]
 
     async def async_connect(self) -> None:
         """Connect to the interface of the device."""
@@ -75,15 +71,11 @@ class Lyngdorf(LyngdorfDevice):
     async def async_disconnect(self) -> None:
         """Disconnect from the interface of the device."""
         await self._api.async_disconnect()
+        await self._async_handle_poller(False)
 
     ##############
     # Properties #
     ##############
-    @property
-    def host(self) -> str:
-        """Return the host of the device as string."""
-        return self._host
-
     @property
     def model(self) -> DeviceModel | None:
         """Return the model of the device as string."""
@@ -253,6 +245,11 @@ class Lyngdorf(LyngdorfDevice):
     def surrounds_trim(self) -> float | None:
         """Return the surround channels trim of the device as float."""
         return self._surrounds_trim
+
+    @property
+    def media_data(self) -> MediaData:
+        """Return the media data from the music player."""
+        return self._media_data
 
     ##########
     # Setter #

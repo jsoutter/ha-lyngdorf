@@ -5,8 +5,9 @@ Module implements the device class for Lyngdorf devices.
 :license: MIT, see LICENSE for more details.
 """
 
+import asyncio
 import logging
-from collections.abc import Callable, Coroutine
+from collections.abc import Awaitable, Callable, Coroutine
 from functools import wraps
 from typing import Any
 
@@ -22,6 +23,7 @@ from .const import (
     DeviceModel,
     LyngdorfQuery,
 )
+from .music_player import MediaData, MusicPlayer
 from .utils import (
     FixedSizeDict,
     compute_alpha,
@@ -107,9 +109,9 @@ def notify_callback(
             if attr_getter:
                 new_value = attr_getter(self)
                 if old_value != new_value:
-                    self.run_notify_callback(event)
+                    await self.run_notify_callback(event)
             else:
-                self.run_notify_callback(event)
+                await self.run_notify_callback(event)
             return result
 
         return wrapper
@@ -117,17 +119,24 @@ def notify_callback(
     return decorator
 
 
+NotificationCallbackType = Callable[[LyngdorfQuery], None | Awaitable[None]]
+
+
 @attr.define(kw_only=True, on_setattr=LYNGDORF_ATTR_SETATTR)
 class LyngdorfDevice:
     """Implements a class with device information."""
+
+    host: str = attr.field()
+    port: int = attr.field(converter=int)
+    timeout: float = attr.field(converter=float)
+    device_model: DeviceModel | None = attr.field()
 
     _api: LyngdorfApi = attr.field(
         factory=lambda: LyngdorfApi(device_protocol=DEFAULT_PROTOCOL),
         validator=attr.validators.instance_of(LyngdorfApi),
     )
-    _notification_callback: Callable[[LyngdorfQuery], None] | None = attr.field(
-        default=None
-    )
+    _notification_callback: NotificationCallbackType | None = attr.field(default=None)
+    _music_player: MusicPlayer | None = attr.field(default=None)
     # Common properties
     _model: DeviceModel | None = attr.field(default=None)
     _multichannel: bool = attr.field(default=False)
@@ -196,10 +205,24 @@ class LyngdorfDevice:
     _surrounds_trim: float | None = attr.field(
         converter=attr.converters.optional(convert_volume), default=None
     )
+    _media_data: MediaData = attr.field(default=MediaData())
 
     def __attrs_post_init__(self) -> None:
         """Initialise attributes."""
+        self._api.host = self.host
+        self._api.port = self.port
+        self._api.timeout = self.timeout
+        self._music_player = MusicPlayer(self.host, self._async_media_data_callback)
+
+        if self.device_model is not None and self.device_model in DEVICE_PROTOCOLS:
+            self._api.device_protocol = DEVICE_PROTOCOLS[self.device_model]
+
         self._alpha = compute_alpha(self._max_volume)
+
+    async def _async_handle_poller(self, start: bool) -> None:
+        """Start or stop the music player poller."""
+        if poller := self._music_player:
+            await (poller.start() if start else poller.stop())
 
     def _register_callbacks(self) -> None:
         """Register all known event callbacks."""
@@ -208,12 +231,15 @@ class LyngdorfDevice:
             callback_fn = getattr(self, callback_name)
             self._api.register_callback(event, callback_fn)
 
-    def set_notification_callback(self, callback: Callable[[LyngdorfQuery], None]):
+    def set_notification_callback(self, callback: NotificationCallbackType):
         self._notification_callback = callback
 
-    def run_notify_callback(self, event: LyngdorfQuery):
+    async def run_notify_callback(self, event: LyngdorfQuery):
         if self._notification_callback:
-            self._notification_callback(event)
+            if asyncio.iscoroutinefunction(self._notification_callback):
+                await self._notification_callback(event)
+            else:
+                self._notification_callback(event)
 
     async def wait_while_connected(self) -> None:
         """Block while the connection is enabled."""
@@ -235,6 +261,7 @@ class LyngdorfDevice:
     async def _async_power_callback(self, event: str, params: list[str]) -> None:
         """Handle a power change event."""
         self._power = params[0] if params else None
+        await self._async_handle_poller(bool(self._power))
 
     @notify_callback(LyngdorfQuery.VOLUME)
     async def _async_volume_callback(self, event: str, params: list[str]) -> None:
@@ -270,7 +297,7 @@ class LyngdorfDevice:
             else:
                 self._sources.add(source_id, params[1])
                 if self._sources.is_full():
-                    self.run_notify_callback(LyngdorfQuery.SOURCE_LIST)
+                    await self.run_notify_callback(LyngdorfQuery.SOURCE_LIST)
 
     @notify_callback(LyngdorfQuery.STREAM_TYPE, lambda self: self._stream_type)
     async def _async_stream_type_callback(self, event: str, params: list[str]) -> None:
@@ -298,7 +325,7 @@ class LyngdorfDevice:
             else:
                 self._voicings.add(voicing_id, params[1])
                 if self._voicings.is_full():
-                    self.run_notify_callback(LyngdorfQuery.VOICING_LIST)
+                    await self.run_notify_callback(LyngdorfQuery.VOICING_LIST)
 
     async def _async_focus_position_count_callback(
         self, event: str, params: list[str]
@@ -321,7 +348,7 @@ class LyngdorfDevice:
             else:
                 self._focus_positions.add(focus_position_id, params[1])
                 if self._focus_positions.is_full():
-                    self.run_notify_callback(LyngdorfQuery.FOCUS_POSITION_LIST)
+                    await self.run_notify_callback(LyngdorfQuery.FOCUS_POSITION_LIST)
 
     async def _async_audio_mode_count_callback(
         self, event: str, params: list[str]
@@ -340,7 +367,7 @@ class LyngdorfDevice:
             else:
                 self._audio_modes.add(audio_mode_id, params[1])
                 if self._audio_modes.is_full():
-                    self.run_notify_callback(LyngdorfQuery.AUDIO_MODE_LIST)
+                    await self.run_notify_callback(LyngdorfQuery.AUDIO_MODE_LIST)
 
     @notify_callback(LyngdorfQuery.AUDIO_INPUT, lambda self: self._audio_input)
     async def _async_audio_input_callback(self, event: str, params: list[str]) -> None:
@@ -441,6 +468,11 @@ class LyngdorfDevice:
     ) -> None:
         """Handle a surround trim event."""
         self._surrounds_trim = params[0] if params else None
+
+    @notify_callback(LyngdorfQuery.MEDIA_DATA)
+    async def _async_media_data_callback(self, media_data: MediaData) -> None:
+        """Handle a media data event"""
+        self._media_data = media_data
 
     def _linear_to_db_flattened(self, value: float) -> float:
         """Convert a linear float [0-1] to dB (0.5 decimal)."""

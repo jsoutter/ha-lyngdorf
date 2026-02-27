@@ -158,6 +158,7 @@ class LyngdorfQuery(Enum):
     HEIGHTS_TRIM = auto()
     LFE_TRIM = auto()
     SURROUNDS_TRIM = auto()
+    MEDIA_DATA = auto()
 
 
 MP_STREAM_TYPES: Final = MappingProxyType(
