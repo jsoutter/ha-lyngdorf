@@ -46,8 +46,10 @@ class MediaData:
 
         player_data = events.get(MusicPlayer.PATH_PLAYER_DATA, {})
         playtime_data = events.get(MusicPlayer.PATH_PLAYTIME)
+        media_data = player_data.get("mediaRoles", {})
+        media_meta_data = media_data.get("mediaData", {}).get("metaData", {})
         track_data = player_data.get("trackRoles", {})
-        meta_data = track_data.get("mediaData", {}).get("metaData", {})
+        track_meta_data = track_data.get("mediaData", {}).get("metaData", {})
 
         state = {
             "playing": MediaState.PLAYING,
@@ -60,11 +62,12 @@ class MediaData:
 
         return cls(
             state=state,
-            title=track_data.get("title"),
-            artist=meta_data.get("artist"),
-            album=meta_data.get("album"),
-            album_artist=meta_data.get("albumArtist") or meta_data.get("artist"),
-            image_url=track_data.get("icon"),
+            title=track_data.get("title") or media_data.get("title"),
+            artist=track_meta_data.get("artist") or media_meta_data.get("artist"),
+            album=track_meta_data.get("album") or media_meta_data.get("album"),
+            album_artist=track_meta_data.get("albumArtist")
+            or media_meta_data.get("albumArtist"),
+            image_url=track_data.get("icon") or media_data.get("icon"),
             duration=duration,
             position=position,
         )
