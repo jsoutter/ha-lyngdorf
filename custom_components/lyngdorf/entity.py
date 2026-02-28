@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import logging
 from typing import TYPE_CHECKING
 
@@ -13,6 +14,7 @@ from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
 )
+from homeassistant.util import dt as dt_util
 
 
 from .const import DOMAIN as LYNGDORF_DOMAIN
@@ -20,6 +22,8 @@ from .const import NAME as LYNGDORF_NAME
 from .pylyngdorf.const import DeviceModel, DEFAULT_PORT, LyngdorfQuery
 from .pylyngdorf.exceptions import LyngdorfNetworkError, LyngdorfTimoutError
 from .pylyngdorf.lyngdorf import Lyngdorf
+from .pylyngdorf.music_player import MediaState
+
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -52,6 +56,13 @@ class LyngdorfCoordinator(DataUpdateCoordinator[None]):
             device_model=self.model,
         )
 
+        self._media_position_updated_at: dt.datetime | None = None
+
+    @property
+    def media_position_updated_at(self) -> dt.datetime | None:
+        """When was the position of the current playing media valid."""
+        return self._media_position_updated_at
+
     async def async_setup(self) -> None:
         """Set up the coordinator; connect to the host; and retrieve initial data."""
         # Connect to the device
@@ -70,6 +81,13 @@ class LyngdorfCoordinator(DataUpdateCoordinator[None]):
 
     def _notify_callback(self, event: LyngdorfQuery) -> None:
         """Handle a notification."""
+        self._media_position_updated_at = (
+            dt_util.utcnow()
+            if event == LyngdorfQuery.MEDIA_DATA
+            and self.receiver.media_data.state != MediaState.STOPPED
+            else None
+        )
+
         self.async_update_listeners()
 
     async def async_shutdown(self) -> None:

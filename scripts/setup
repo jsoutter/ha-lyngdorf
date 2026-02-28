@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-
+sudo apt-get update && apt-get install -y ffmpeg
 set -e
-
 cd "$(dirname "$0")/.."
-
 python=$(which python3)
 
 if [ ! -d "venv" ]; then
@@ -17,9 +15,6 @@ else
 fi
 
 pip="${python} -m pip"
-
 ${pip} install --upgrade pip
-
 ${pip} install --requirement requirements-dev.txt
-
 pre-commit install

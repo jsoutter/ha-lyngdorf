@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime as dt
 from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
@@ -13,13 +14,14 @@ from homeassistant.components.media_player import (
 from homeassistant.components.media_player.const import (
     MediaPlayerEntityFeature,
     MediaPlayerState,
+    MediaType,
 )
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_platform
 
 
 from .pylyngdorf.const import MIN_VOLUME_DB
-
+from .pylyngdorf.music_player import MediaState
 
 from .entity import LyngdorfCoordinator, LyngdorfEntity
 
@@ -49,8 +51,13 @@ ATTR_VOLUME_DB = "volume_db"
 ATTR_VOLUME_MIN_DB = "volume_min_db"
 ATTR_VOLUME_MAX_DB = "volume_max_db"
 
-
 SERVICE_SET_VOLUME_DB = "set_volume_db"
+
+MEDIA_PLAYER_STATE_MAP = {
+    MediaState.BUFFERING: MediaPlayerState.BUFFERING,
+    MediaState.PLAYING: MediaPlayerState.PLAYING,
+    MediaState.PAUSED: MediaPlayerState.PAUSED,
+}
 
 
 async def async_setup_entry(
@@ -90,9 +97,64 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
     @property
     def state(self) -> MediaPlayerState | None:
         """Return the state of the device."""
-        if self._receiver.power:
-            return MediaPlayerState.ON
-        return MediaPlayerState.OFF
+        if not self._receiver.power:
+            self._state = MediaPlayerState.OFF
+        else:
+            self._state = MEDIA_PLAYER_STATE_MAP.get(
+                self._receiver.media_data.state, MediaPlayerState.ON
+            )
+        return self._state
+
+    @property
+    def media_content_type(self) -> MediaType | str | None:
+        """Content type of current playing media."""
+        if self._receiver.media_data.state == MediaState.STOPPED:
+            return None
+        return MediaType.MUSIC
+
+    @property
+    def media_duration(self) -> int | None:
+        """Duration of current playing media in seconds."""
+        if self._receiver.media_data.state == MediaState.STOPPED:
+            return None
+        return self._receiver.media_data.duration
+
+    @property
+    def media_position(self) -> int | None:
+        """Position of current playing media in seconds."""
+        if self._receiver.media_data.state == MediaState.STOPPED:
+            return None
+        return self._receiver.media_data.position
+
+    @property
+    def media_position_updated_at(self) -> dt.datetime | None:
+        """When was the position of the current playing media valid."""
+        return self.coordinator.media_position_updated_at
+
+    @property
+    def media_image_url(self) -> str | None:
+        """Image url of current playing media."""
+        return self._receiver.media_data.image_url
+
+    @property
+    def media_title(self) -> str | None:
+        """Title of current playing media."""
+        return self._receiver.media_data.title
+
+    @property
+    def media_artist(self) -> str | None:
+        """Artist of current playing media, music track only."""
+        return self._receiver.media_data.artist
+
+    @property
+    def media_album_name(self) -> str | None:
+        """Album name of current playing media, music track only."""
+        return self._receiver.media_data.album
+
+    @property
+    def media_album_artist(self) -> str | None:
+        """Album artist of current playing media, music track only."""
+        return self._receiver.media_data.album_artist
 
     async def async_turn_on(self) -> None:
         """Turn on media player."""
