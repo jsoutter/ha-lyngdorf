@@ -246,7 +246,14 @@ TDAI_QUERIES: Final[Mapping[LyngdorfQuery, str]] = MappingProxyType(
     }
 )
 
-MP_MODELS: Final = [DeviceModel.MP40, DeviceModel.MP50, DeviceModel.MP60]
+MP_MODELS: Final = [
+    DeviceModel.MP40,
+    DeviceModel.MP50,
+    DeviceModel.MP60,
+    DeviceModel.P100,
+    DeviceModel.P200,
+    DeviceModel.P300,
+]
 TDAI_MODELS: Final = [DeviceModel.TDAI1120, DeviceModel.TDAI2210, DeviceModel.TDAI3400]
 
 TDAI_STREAM_TYPES: Final = {

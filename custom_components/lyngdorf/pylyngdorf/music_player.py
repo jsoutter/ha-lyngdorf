@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import json
 import logging
 from collections.abc import Awaitable, Callable
@@ -133,7 +134,7 @@ class MusicPlayer:
 
         if self.callback:
             try:
-                if asyncio.iscoroutinefunction(self.callback):
+                if inspect.iscoroutinefunction(self.callback):
                     await self.callback(media_data)
                 else:
                     self.callback(media_data)
