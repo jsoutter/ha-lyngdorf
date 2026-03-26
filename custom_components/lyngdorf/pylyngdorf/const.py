@@ -48,6 +48,9 @@ class DeviceModel(str, Enum):
     TDAI1120 = "TDAI-1120"
     TDAI2210 = "TDAI-2210"
     TDAI3400 = "TDAI-3400"
+    P100 = "P100"
+    P200 = "P200"
+    P300 = "P300"
 
 
 class LyngdorfCommand(Enum):
