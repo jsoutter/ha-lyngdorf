@@ -14,13 +14,13 @@
 
 ## Functionality
 
-The integration allows you to control an Lyngdorf processor using TCP sockets from Home Assistant.
+The integration allows you to control a Lyngdorf/Steinway Lyngdorf processor using TCP sockets from Home Assistant.
 
 ### Supported Features
 
 #### Media Player Entity
 
-| Function | MP-40, MP-50, MP-60 | TDAI-1120, TDAI-2210, TDAI-3400 |
+| Function | MP-40, MP-50, MP-60,<br>P100, P200, P300 | TDAI-1120, TDAI-2210, TDAI-3400 |
 |-|-|-|
 | Get and set volume | ✅ | ✅ |
 | Increase or decrease volume | ✅ | ✅ |
@@ -41,7 +41,7 @@ The integration allows you to control an Lyngdorf processor using TCP sockets fr
 
 #### Select Entity
 
-| Function | MP-40, MP-50, MP60 | TDAI-1120, TDAI-2200, TDAI-3400 |
+| Function | MP-40, MP-50, MP60,<br>P100, P200, P300 | TDAI-1120, TDAI-2200, TDAI-3400 |
 |-|-|-|
 | Get focus positions list | ✅ | ✅ |
 | Get and set focus position | ✅ | ✅ |
@@ -50,7 +50,7 @@ The integration allows you to control an Lyngdorf processor using TCP sockets fr
 
 #### Sensor Entity
 
-| Senor | MP-40, MP-50, MP60 | TDAI-1120, TDAI-2200, TDAI-3400 |
+| Senor | MP-40, MP-50, MP60,<br>P100, P200, P300 | TDAI-1120, TDAI-2200, TDAI-3400 |
 |-|-|-|
 | Streaming source | ✅ | ✅ |
 | Audio input | ✅ | ❌ |
@@ -61,7 +61,7 @@ The integration allows you to control an Lyngdorf processor using TCP sockets fr
 
 #### Remote Entity
 
-| Command | MP-40, MP-50, MP-60 | TDAI-1120, TDAI-2210, TDAI-3400 |
+| Command | MP-40, MP-50, MP-60,<br>P100, P200, P300 | TDAI-1120, TDAI-2210, TDAI-3400 |
 |-|-|-|
 | VOLUME_UP | ✅ | ✅ |
 | VOLUME_DOWN | ✅ | ✅ |
