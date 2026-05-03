@@ -5,7 +5,7 @@ Module implements the device class for Lyngdorf devices.
 :license: MIT, see LICENSE for more details.
 """
 
-import asyncio
+import inspect
 import logging
 from collections.abc import Awaitable, Callable, Coroutine
 from functools import wraps
@@ -236,7 +236,7 @@ class LyngdorfDevice:
 
     async def run_notify_callback(self, event: LyngdorfQuery):
         if self._notification_callback:
-            if asyncio.iscoroutinefunction(self._notification_callback):
+            if inspect.iscoroutinefunction(self._notification_callback):
                 await self._notification_callback(event)
             else:
                 self._notification_callback(event)
@@ -268,7 +268,9 @@ class LyngdorfDevice:
         """Handle a volume change event."""
         self._volume = params[0] if params else None
         volume = self._volume
-        self._volume_level = self._db_to_linear_flattened(volume) if volume else None
+        self._volume_level = (
+            self._db_to_linear_flattened(volume) if volume is not None else None
+        )
 
     @notify_callback(LyngdorfQuery.MUTE)
     async def _async_mute_callback(self, event: str, params: list[str]) -> None:
@@ -278,9 +280,12 @@ class LyngdorfDevice:
     @notify_callback(LyngdorfQuery.MAX_VOLUME)
     async def _async_max_volume_callback(self, event: str, params: list[str]) -> None:
         """Handle a max volume event."""
-        if params:
-            self._max_volume = params[0]
-            self._alpha = compute_alpha(self._max_volume)
+        self._volume = params[0] if params else None
+        volume = self._volume
+
+        self._volume_level = (
+            self._db_to_linear_flattened(volume) if volume is not None else None
+        )
 
     async def _async_source_count_callback(self, event: str, params: list[str]) -> None:
         """Handle a source count event."""

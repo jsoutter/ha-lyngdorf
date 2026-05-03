@@ -25,6 +25,12 @@ The integration allows you to control a Lyngdorf/Steinway Lyngdorf processor usi
 | Get and set source | ✅ | ✅ |
 | Get sounds modes | ✅ | ❌ |
 | Get and set sound mode | ✅ | ❌ |
+| Play/Pause | ✅ | ✅ |
+| Next track | ✅ | ✅ |
+| Previous track | ✅ | ✅ |
+| Seek | ✅ | ✅ |
+| Shuffle control | ✅ | ✅ |
+| Repeat control | ✅ | ✅ |
 | Attribute for volume in native format (dB) | ✅ | ✅ |
 
 | Attribute Name | Description |

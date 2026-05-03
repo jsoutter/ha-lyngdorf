@@ -18,7 +18,7 @@ from .const import (
     LyngdorfCommand,
 )
 from .device import LyngdorfDevice
-from .music_player import MediaData
+from .music_player import MediaData, RepeatMode
 
 T = TypeVar("T", bound="Lyngdorf")
 
@@ -345,6 +345,21 @@ class Lyngdorf(LyngdorfDevice):
     async def async_next(self) -> None:
         """Send next track command."""
         await self.async_send_command(LyngdorfCommand.NEXT)
+
+    async def async_seek(self, time: int) -> None:
+        """Set seek position."""
+        if self._music_player:
+            await self._music_player.seek(time)
+
+    async def async_repeat(self, repeat: RepeatMode) -> None:
+        """Set repeat mode."""
+        if self._music_player:
+            await self._music_player.repeat(repeat)
+
+    async def async_shuffle(self, shuffle: bool) -> None:
+        """Set shuffle mode."""
+        if self._music_player:
+            await self._music_player.shuffle(shuffle)
 
     async def _set_trim(
         self, command: LyngdorfCommand, trim: float, range_: float
