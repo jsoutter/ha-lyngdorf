@@ -86,9 +86,6 @@ COMMON_COMMANDS: Final = DeviceCommands(
         LyngdorfCommand.MUTE_ON: CommandDefinition("MUTEON"),
         LyngdorfCommand.MUTE_OFF: CommandDefinition("MUTEOFF"),
         LyngdorfCommand.SOURCE: CommandDefinition("SRC({:d})", parameter=True),
-        LyngdorfCommand.PLAY: CommandDefinition("PLAY"),
-        LyngdorfCommand.PREVIOUS: CommandDefinition("PREV"),
-        LyngdorfCommand.NEXT: CommandDefinition("NEXT"),
     }
 )
 

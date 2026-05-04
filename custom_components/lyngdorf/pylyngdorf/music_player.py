@@ -286,7 +286,7 @@ class MusicPlayer:
         await self._reset_state()
         await asyncio.sleep(backoff)
 
-    async def start(self) -> None:
+    async def start_polling(self) -> None:
         """Start background polling safely."""
         async with self._lock:
             if self._running:
@@ -298,7 +298,7 @@ class MusicPlayer:
             await self._reset_state()
             self._poll_task = asyncio.create_task(self._poll_loop())
 
-    async def stop(self) -> None:
+    async def stop_polling(self) -> None:
         """Stop polling safely and cancel ongoing operations."""
         async with self._lock:
             if not self._running:
@@ -349,6 +349,25 @@ class MusicPlayer:
         async with self._session.get(url, params=params) as resp:
             resp.raise_for_status()
             return resp.status
+
+    async def _send_control(self, command: str) -> None:
+        await self._set_data(self.PATH_PLAYER_CONTROL, "activate", {"control": command})
+
+    async def pause(self) -> None:
+        """Send pause command."""
+        await self._send_control("pause")
+
+    async def stop(self) -> None:
+        """Send stop command."""
+        await self._send_control("stop")
+
+    async def next(self) -> None:
+        """Send stop command."""
+        await self._send_control("next")
+
+    async def previous(self) -> None:
+        """Send stop command."""
+        await self._send_control("previous")
 
     async def seek(self, time: int) -> None:
         """Seek to media position."""
