@@ -28,7 +28,7 @@ The integration allows you to control a Lyngdorf/Steinway Lyngdorf processor usi
 | Get and set source | ✅ | ✅ |
 | Get sounds modes | ✅ | ❌ |
 | Get and set sound mode | ✅ | ❌ |
-| Play/Pause | ✅ | ✅ |
+| Play/Pause/Stop | ✅ | ✅ |
 | Next track | ✅ | ✅ |
 | Previous track | ✅ | ✅ |
 | Seek | ✅ | ✅ |
@@ -74,9 +74,6 @@ The integration allows you to control a Lyngdorf/Steinway Lyngdorf processor usi
 | MUTE_TOGGLE | ✅ | ✅ |
 | MUTE | ✅ | ✅ |
 | UNMUTE | ✅ | ✅ |
-| PLAY_PAUSE | ✅ | ✅ |
-| NEXT | ✅ | ✅ |
-| PREVIOUS | ✅ | ✅ |
 | SOURCE_BUTTON | ✅ | ❌ |
 | SOURCE_NEXT | ✅ | ✅ |
 | SOURCE_PREV | ✅ | ✅ |

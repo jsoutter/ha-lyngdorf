@@ -222,7 +222,7 @@ class LyngdorfDevice:
     async def _async_handle_poller(self, start: bool) -> None:
         """Start or stop the music player poller."""
         if poller := self._music_player:
-            await (poller.start() if start else poller.stop())
+            await (poller.start_polling() if start else poller.stop_polling())
 
     def _register_callbacks(self) -> None:
         """Register all known event callbacks."""

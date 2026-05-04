@@ -336,15 +336,28 @@ class Lyngdorf(LyngdorfDevice):
 
     async def async_play(self) -> None:
         """Send play command."""
-        await self.async_send_command(LyngdorfCommand.PLAY)
+        if self._music_player:
+            await self._music_player.pause()
+
+    async def async_pause(self) -> None:
+        """Send pause command."""
+        if self._music_player:
+            await self._music_player.pause()
+
+    async def async_stop(self) -> None:
+        """Send stop command."""
+        if self._music_player:
+            await self._music_player.stop()
 
     async def async_previous(self) -> None:
         """Send previous track command."""
-        await self.async_send_command(LyngdorfCommand.PREVIOUS)
+        if self._music_player:
+            await self._music_player.previous()
 
     async def async_next(self) -> None:
         """Send next track command."""
-        await self.async_send_command(LyngdorfCommand.NEXT)
+        if self._music_player:
+            await self._music_player.next()
 
     async def async_seek(self, time: int) -> None:
         """Set seek position."""

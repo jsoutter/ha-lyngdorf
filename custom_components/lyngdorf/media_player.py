@@ -44,6 +44,7 @@ SUPPORT_LYNGDORF = (
     | MediaPlayerEntityFeature.SELECT_SOURCE
     | MediaPlayerEntityFeature.PLAY
     | MediaPlayerEntityFeature.PAUSE
+    | MediaPlayerEntityFeature.STOP
     | MediaPlayerEntityFeature.PREVIOUS_TRACK
     | MediaPlayerEntityFeature.NEXT_TRACK
     | MediaPlayerEntityFeature.SEEK
@@ -281,11 +282,11 @@ class LyngdorfMediaPlayer(LyngdorfEntity, MediaPlayerEntity):
 
     async def async_media_pause(self) -> None:
         """Send pause command."""
-        await self._receiver.async_play()
+        await self._receiver.async_pause()
 
-    async def async_media_play_pause(self) -> None:
+    async def async_media_stop(self) -> None:
         """Send play/pause command."""
-        await self._receiver.async_play()
+        await self._receiver.async_stop()
 
     async def async_media_previous_track(self) -> None:
         """Send previous track command."""
