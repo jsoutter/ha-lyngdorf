@@ -6,6 +6,7 @@ from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum, IntEnum, StrEnum, auto
 from typing import Any, Final, TypeAlias
+from urllib.parse import urlencode
 
 import aiohttp
 
@@ -61,6 +62,31 @@ _SHUFFLE_MAP = {
     PlayMode.SHUFFLE_REPEAT_ONE: True,
 }
 
+_ROLES_LIST = [
+    "title",
+    "icon",
+    "type",
+    "containerType",
+    "audioType",
+    "path",
+    "mediaData",
+    "id",
+    "value",
+]
+
+
+def get_typed_value(entry: dict[str, Any] | None) -> Any:
+    """Extract string value from json."""
+    if not isinstance(entry, dict):
+        return None
+    key = entry.get("type")
+    return entry.get(key) if isinstance(key, str) else None
+
+
+def set_typed_value(value: Any) -> dict[str, Any]:
+    """Create json for string value."""
+    return {"type": "string_", "string_": value}
+
 
 @dataclass(slots=True)
 class MediaData:
@@ -83,12 +109,6 @@ class MediaData:
             except (ValueError, TypeError):
                 return PlayMode.NORMAL
 
-        def get_typed_value(entry: dict[str, Any] | None) -> Any:
-            if not isinstance(entry, dict):
-                return None
-            key = entry.get("type")
-            return entry.get(key) if isinstance(key, str) else None
-
         player_data = events.get(MusicPlayer.PATH_PLAYER_DATA, {})
         playtime_data = events.get(MusicPlayer.PATH_PLAYTIME_DATA)
         playmode_data = events.get(MusicPlayer.PATH_PLAYMODE_DATA)
@@ -100,7 +120,8 @@ class MediaData:
 
         state = _STATE_MAP.get(player_data.get("state"), MediaState.STOPPED)
         duration = int((player_data.get("status", {}).get("duration") or 0) / 1000)
-        position = int(get_typed_value(playtime_data) / 1000) if playtime_data else 0
+        raw_pos = get_typed_value(playtime_data)
+        position = int(raw_pos / 1000) if isinstance(raw_pos, (int, float)) else 0
         mode = parse_play_mode(get_typed_value(playmode_data))
         shuffle = _SHUFFLE_MAP.get(mode, False)
         repeat = _REPEAT_MAP.get(mode, RepeatMode.OFF)
@@ -120,7 +141,25 @@ class MediaData:
         )
 
 
-CallbackType = Callable[[MediaData], None | Awaitable[None] | None] | None
+class MusicPlayerException(Exception):
+    """Music player API exception."""
+
+    def __init__(
+        self,
+        status: int,
+        message: str | None = None,
+        title: str | None = None,
+        name: str | None = None,
+    ) -> None:
+        self.status = status
+        self.message = message
+        self.title = title
+        self.name = name
+
+        super().__init__(f"{status} - {title}: {message} (name={name})")
+
+
+CallbackType = Callable[[MediaData], Awaitable[None] | None] | None
 
 
 class MusicPlayer:
@@ -128,6 +167,7 @@ class MusicPlayer:
     PATH_PLAYTIME_DATA: Final[str] = "player:player/data/playTime"
     PATH_PLAYER_CONTROL: Final[str] = "player:player/control"
     PATH_PLAYMODE_DATA: Final[str] = "settings:/mediaPlayer/playMode"
+
     PATHS: Final[list[str]] = [
         PATH_PLAYER_DATA,
         PATH_PLAYTIME_DATA,
@@ -147,7 +187,13 @@ class MusicPlayer:
 
         self._running = False
         self._session: aiohttp.ClientSession | None = None
-        self._poll_task: asyncio.Task[None] | None = None
+        self._timeout = aiohttp.ClientTimeout(
+            total=poll_timeout + 1,
+            connect=5,
+            sock_connect=5,
+            sock_read=poll_timeout + 1,
+        )
+        self._poll_task: asyncio.Task[Any] | None = None
         self._queue_id: str | None = None
         self._poll_url: str | None = None
         self._subscribe_url: str | None = None
@@ -157,40 +203,57 @@ class MusicPlayer:
     async def _ensure_session(self) -> None:
         if not self._session or self._session.closed:
             _LOG.debug("Creating new aiohttp session.")
-            self._session = aiohttp.ClientSession()
+            self._session = aiohttp.ClientSession(timeout=self._timeout)
 
     async def _fetch_json(self, url: str) -> Any:
         """GET request and return parsed JSON."""
+        await self._ensure_session()
         assert self._session is not None
+
         async with self._session.get(url) as response:
-            response.raise_for_status()
+            if response.status >= 400:
+                error_data: dict[str, Any] = {}
+
+                try:
+                    payload = await response.json()
+                    error_data = payload.get("error", {})
+                except Exception:
+                    _LOG.exception("Failed to parse error response JSON")
+
+                raise MusicPlayerException(
+                    status=response.status,
+                    message=error_data.get("message"),
+                    title=error_data.get("title"),
+                    name=error_data.get("name"),
+                )
+
             return await response.json()
 
     async def _update_events(self, path: str | None, data: Any) -> None:
         """Update internal events dictionary."""
         if path is None:
-            self._events.update(
-                {j["path"]: j.get("itemValue") for j in data if "path" in j}
-            )
+            updates = {j["path"]: j.get("itemValue") for j in data if "path" in j}
         else:
-            self._events[path] = data[0]
+            updates = {path: data[0] if data else None}
+
+        self._events.update(updates)
         _LOG.debug("Events updated: %s", self._events)
 
     async def _dispatch_media_data(self) -> None:
         """Generate MediaData and call the callback, with logging."""
-        if not all(p in self._events for p in self.PATHS):
+        events_snapshot = self._events.copy()
+        if not all(p in events_snapshot for p in self.PATHS):
             media_data = MediaData(state=MediaState.STOPPED)
         else:
-            media_data = MediaData.from_events(self._events)
+            media_data = MediaData.from_events(events_snapshot)
 
         _LOG.debug("Dispatching MediaData: %s", media_data)
 
         if self.callback:
             try:
-                if inspect.iscoroutinefunction(self.callback):
-                    await self.callback(media_data)
-                else:
-                    self.callback(media_data)
+                result = self.callback(media_data)
+                if inspect.isawaitable(result):
+                    await result
             except Exception:
                 _LOG.exception("Callback error for MediaData")
 
@@ -202,7 +265,11 @@ class MusicPlayer:
             f"{self.base_url}/api/event/modifyQueue?queueId=&subscribe[]=&unsubscribe[]"
         )
         raw_text = await self._fetch_json(init_url)
-        self._queue_id = raw_text[1:-1]  # strip {}
+        if isinstance(raw_text, str):
+            self._queue_id = raw_text.strip("{}")
+        else:
+            raise ValueError(f"Unexpected queue response: {raw_text}")
+
         _LOG.debug("Initialized queueId: %s", self._queue_id)
 
         self._poll_url = (
@@ -225,17 +292,19 @@ class MusicPlayer:
                 return path, None
 
         async with asyncio.TaskGroup() as tg:
-            for p in self.PATHS:
-                tg.create_task(fetch_path(p))
+            tasks = {p: tg.create_task(fetch_path(p)) for p in self.PATHS}
 
-        for p in self.PATHS:
-            data = await fetch_path(p)
-            if data[1] is not None:
-                await self._update_events(p, data[1])
+        for _, task in tasks.items():
+            p, data = task.result()
+            if data is not None:
+                await self._update_events(p, data)
 
         await self._dispatch_media_data()
         await self._fetch_json(self._subscribe_url)
         _LOG.debug("Subscription established for queueId=%s", self._queue_id)
+
+    def _increase_backoff(self, current: float) -> float:
+        return min(RECONNECT_MAX_WAIT, current * RECONNECT_SCALE)
 
     async def _poll_loop(self) -> None:
         """Continuously poll queue for events."""
@@ -247,11 +316,12 @@ class MusicPlayer:
                         await self._initialize_queue()
 
                     assert self._poll_url is not None
-                    _LOG.debug("self._poll_url: %s", self._poll_url)
+                    _LOG.debug("Polling URL: %s", self._poll_url)
 
                     data = await self._fetch_json(self._poll_url)
                     await self._update_events(None, data)
                     await self._dispatch_media_data()
+                    backoff = RECONNECT_BACKOFF
 
                 except (
                     TimeoutError,
@@ -260,11 +330,11 @@ class MusicPlayer:
                 ):
                     _LOG.exception("Connection error during polling")
                     await self._reconnect(backoff)
+                    backoff = self._increase_backoff(backoff)
                 except Exception:
                     _LOG.exception("Unexpected polling error")
                     await asyncio.sleep(backoff)
-
-                backoff = min(RECONNECT_MAX_WAIT, backoff * RECONNECT_SCALE)
+                    backoff = self._increase_backoff(backoff)
 
         except asyncio.CancelledError:
             _LOG.debug("Poll loop cancelled, exiting immediately.")
@@ -334,21 +404,19 @@ class MusicPlayer:
         path: str,
         roles: str | Mapping[str, Any],
         value: Mapping[str, Any],
-    ) -> int:
+    ) -> Any:
         """POST request to set data."""
-        url = f"{self.base_url}/api/setData"
         params: dict[str, Any] = {
             "path": path,
             "roles": self._encode(roles),
             "value": self._encode(value),
         }
+        url = f"{self.base_url}/api/setData?{urlencode(params, safe='')}"
 
         if self._session is None:
             raise RuntimeError("HTTP session not initialized")
 
-        async with self._session.get(url, params=params) as resp:
-            resp.raise_for_status()
-            return resp.status
+        return await self._fetch_json(url)
 
     async def _send_control(self, command: str) -> None:
         await self._set_data(self.PATH_PLAYER_CONTROL, "activate", {"control": command})
@@ -362,11 +430,11 @@ class MusicPlayer:
         await self._send_control("stop")
 
     async def next(self) -> None:
-        """Send stop command."""
+        """Send next command."""
         await self._send_control("next")
 
     async def previous(self) -> None:
-        """Send stop command."""
+        """Send previous command."""
         await self._send_control("previous")
 
     async def seek(self, time: int) -> None:
@@ -376,7 +444,7 @@ class MusicPlayer:
 
     def _derive_play_mode(self, repeat: RepeatMode, shuffle: bool) -> PlayMode:
         """Derive play mode."""
-        _LOG.debug("repeat: %s, Shuffle %s", repeat.name, shuffle)
+        _LOG.debug("repeat: %s, shuffle: %s", repeat.name, shuffle)
         if shuffle:
             if repeat == RepeatMode.OFF:
                 return PlayMode.SHUFFLE
@@ -398,14 +466,53 @@ class MusicPlayer:
 
     async def shuffle(self, shuffle: bool) -> None:
         """Set shuffle mode."""
-        current = MediaData.from_events(self._events)
+        current = MediaData.from_events(self._events.copy())
         mode = self._derive_play_mode(repeat=current.repeat, shuffle=shuffle)
         _LOG.debug("shuffle playmode: %s", mode)
         await self._set_playmode(mode)
 
     async def repeat(self, repeat: RepeatMode) -> None:
         """Set repeat mode."""
-        current = MediaData.from_events(self._events)
+        current = MediaData.from_events(self._events.copy())
         mode = self._derive_play_mode(repeat=repeat, shuffle=current.shuffle)
         _LOG.debug("repeat playmode: %s", mode)
         await self._set_playmode(mode)
+
+    async def get_rows(
+        self,
+        from_: int = 0,
+        to: int = 20,
+        path: str = "ui:",
+        roles_list: list[str] = _ROLES_LIST,
+        max_redirects: int = 5,
+    ) -> Any:
+        """Get rows for path."""
+        roles = ",".join(roles_list)
+        for _ in range(max_redirects):
+            params: dict[str, Any] = {
+                "path": path,
+                "roles": roles,
+                "from": from_,
+                "to": to,
+            }
+            url = f"{self.base_url}/api/getRows?{urlencode(params, safe='')}"
+            data = await self._fetch_json(url)
+
+            # Follow redirect
+            redirect = data.get("rowsRedirect")
+            if redirect:
+                path = redirect
+                continue
+
+            data["rows"] = [
+                {k: v for k, v in zip(roles_list, row, strict=True) if v is not None}
+                for row in data.get("rows", [])
+            ]
+            return data
+
+        raise RuntimeError(f"Too many redirects for path={path}")
+
+    async def search(self, path: str, query: str) -> Any:
+        """Search path using query."""
+        data = set_typed_value(query)
+        return await self._set_data(path, "query", data)
