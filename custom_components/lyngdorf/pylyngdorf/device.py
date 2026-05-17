@@ -280,13 +280,10 @@ class LyngdorfDevice:
     @notify_callback(LyngdorfQuery.MAX_VOLUME)
     async def _async_max_volume_callback(self, event: str, params: list[str]) -> None:
         """Handle a max volume event."""
-        self._volume = params[0] if params else None
-        volume = self._volume
-
-        self._volume_level = (
-            self._db_to_linear_flattened(volume) if volume is not None else None
-        )
-
+        if params:
+            self._max_volume = params[0]
+            self._alpha = compute_alpha(self._max_volume)
+    
     async def _async_source_count_callback(self, event: str, params: list[str]) -> None:
         """Handle a source count event."""
         if params:
